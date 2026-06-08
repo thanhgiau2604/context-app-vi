@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { ROOM_ID } from "@/lib/firestore/single-room-id-constant";
 import { subscribeToRoom } from "@/lib/firestore/room-firestore-repository";
 import { useRoundSaltLoader } from "@/hooks/use-round-salt-loader";
 import { useGameStore } from "@/stores/game-session-store";
@@ -16,9 +17,9 @@ import { CumulativeScoreLeaderboardPanel } from "@/features/results/leaderboard/
 import type { Room } from "@/types/game-firestore-types";
 
 export function GamePageLayout() {
-  const { roomId } = useParams({ from: "/room/$roomId/game" });
   const navigate = useNavigate();
-  const { uid, playerName, currentRoundId, localGuesses, usedHints, setRound } = useGameStore();
+  const { uid, playerName, currentRoundId, localGuesses, usedHints, setRound, resetRoundState } =
+    useGameStore();
   const [room, setRoom] = useState<Room | null>(null);
   const [startedAtMs] = useState(Date.now());
   const [solved, setSolved] = useState(false);
@@ -27,27 +28,40 @@ export function GamePageLayout() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [roundScore, setRoundScore] = useState(0);
 
-  const { roundSalt } = useRoundSaltLoader(roomId ?? null, currentRoundId ?? null);
-  const roundId = currentRoundId ?? room?.currentRoundId ?? null;
-  const publicResults = usePublicResultsRealtime(roomId ?? null, roundId);
-  const activePlayers = room ? room.playerCount || publicResults.length : 0;
+  // Track previous roundId to detect round changes mid-session
+  const prevRoundIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!roomId) return;
-    return subscribeToRoom(roomId, (r) => {
+    return subscribeToRoom(ROOM_ID, (r) => {
       setRoom(r);
-      if (r?.currentRoundId && !currentRoundId) setRound(r.currentRoundId);
-      if (r?.status === "lobby") void navigate({ to: "/room/$roomId", params: { roomId } });
-      if (r?.status === "ended") void navigate({ to: "/room/$roomId/podium", params: { roomId } });
+      if (r?.currentRoundId) {
+        // New round started — reset player state
+        if (prevRoundIdRef.current && prevRoundIdRef.current !== r.currentRoundId) {
+          resetRoundState();
+          setSolved(false);
+          setSurrendered(false);
+          setShowSurrenderConfirm(false);
+          setShowCelebration(false);
+        }
+        prevRoundIdRef.current = r.currentRoundId;
+        setRound(r.currentRoundId);
+      }
+      if (r?.status === "waiting") void navigate({ to: "/lobby" });
+      if (r?.status === "ended") void navigate({ to: "/podium" });
     });
-  }, [roomId, currentRoundId, setRound, navigate]);
+  }, [setRound, resetRoundState, navigate]);
+
+  const roundId = currentRoundId ?? room?.currentRoundId ?? null;
+  const { roundSalt } = useRoundSaltLoader(ROOM_ID, roundId);
+  const publicResults = usePublicResultsRealtime(ROOM_ID, roundId);
+  const activePlayers = room ? room.playerCount || publicResults.length : 0;
 
   async function handleSolved() {
-    if (!roomId || !roundId || !uid || !playerName) return;
+    if (!roundId || !uid || !playerName) return;
     setSolved(true);
     try {
       const score = await finishPlayerRound({
-        roomId,
+        roomId: ROOM_ID,
         roundId,
         uid,
         name: playerName,
@@ -67,7 +81,7 @@ export function GamePageLayout() {
   }
 
   async function handleSurrender() {
-    if (!roomId || !roundId || !uid || !playerName) return;
+    if (!roundId || !uid || !playerName) return;
     setSurrendered(true);
     setShowSurrenderConfirm(false);
     const bestRank = localGuesses.reduce<number | null>(
@@ -76,7 +90,7 @@ export function GamePageLayout() {
     );
     try {
       await finishPlayerRound({
-        roomId,
+        roomId: ROOM_ID,
         roundId,
         uid,
         name: playerName,
@@ -96,7 +110,7 @@ export function GamePageLayout() {
   const isPlaying = !solved && !surrendered;
   const roundStatus = isPlaying ? "playing" : "locked";
 
-  if (!roomId || !roundId || !roundSalt || !uid) {
+  if (!roundId || !roundSalt || !uid) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p className="animate-pulse text-muted-foreground">Đang tải game…</p>
@@ -118,7 +132,7 @@ export function GamePageLayout() {
         {/* Left: gameplay area */}
         <div className="flex flex-col gap-3">
           <RoundStatusHeaderBar
-            roundNumber={1}
+            roundNumber={room?.currentRoundId ? 1 : 1}
             startedAtMs={startedAtMs}
             onHint={() => {}}
             onSurrender={() => setShowSurrenderConfirm(true)}
@@ -129,7 +143,7 @@ export function GamePageLayout() {
           {isPlaying && (
             <GuessInputForm
               roundSalt={roundSalt}
-              roomId={roomId}
+              roomId={ROOM_ID}
               roundId={roundId}
               disabled={false}
               onSolved={handleSolved}
@@ -155,18 +169,18 @@ export function GamePageLayout() {
               </div>
             </div>
           )}
-          <HintPanel roomId={roomId} roundId={roundId} uid={uid} roundStatus={roundStatus} />
+          <HintPanel roomId={ROOM_ID} roundId={roundId} uid={uid} roundStatus={roundStatus} />
           <GuessHistorySortedList />
         </div>
 
         {/* Right: results + leaderboard (desktop only) */}
         <div className="hidden md:flex flex-col gap-3">
           <RealtimeRoundResultsBoard
-            roomId={roomId}
+            roomId={ROOM_ID}
             roundId={roundId}
             activePlayers={activePlayers}
           />
-          <CumulativeScoreLeaderboardPanel roomId={roomId} />
+          <CumulativeScoreLeaderboardPanel roomId={ROOM_ID} />
         </div>
       </div>
     </div>

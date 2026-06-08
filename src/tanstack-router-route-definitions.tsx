@@ -18,32 +18,28 @@ const rootRoute = createRootRoute({
   ),
 });
 
-// ── Player routes ──────────────────────────────────────────────────────────
+// ── Player routes — single-room app, no roomId in URLs ────────────────────
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
-  // ?room=ROOMCODE pre-fills the room code input
-  validateSearch: (search: Record<string, unknown>) => ({
-    room: (search.room as string | undefined) ?? "",
-  }),
   component: PlayerJoinRoomPage,
 });
 
-const roomLobbyRoute = createRoute({
+const lobbyRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/room/$roomId",
+  path: "/lobby",
   component: RoomWaitingLobbyPage,
 });
 
 const gameRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/room/$roomId/game",
+  path: "/game",
   component: GamePageLayout,
 });
 
 const podiumRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/room/$roomId/podium",
+  path: "/podium",
   component: FinalGamePodiumPage,
 });
 
@@ -71,7 +67,7 @@ const adminSettingsRoute = createRoute({
 // ── Router ─────────────────────────────────────────────────────────────────
 const routeTree = rootRoute.addChildren([
   indexRoute,
-  roomLobbyRoute,
+  lobbyRoute,
   gameRoute,
   podiumRoute,
   adminRoute,

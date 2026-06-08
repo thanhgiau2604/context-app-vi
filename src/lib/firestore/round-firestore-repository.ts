@@ -1,5 +1,14 @@
 import { db } from "@/lib/firebase-app-init";
-import { doc, setDoc, writeBatch, serverTimestamp, updateDoc, getDoc } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  writeBatch,
+  serverTimestamp,
+  updateDoc,
+  getDoc,
+  getDocs,
+  collection,
+} from "firebase/firestore";
 import { nanoid } from "nanoid";
 import type { HintPoolBuiltEntry } from "@/lib/utils/hint-pool-spread-builder";
 import type { Round, TermIndexDoc, HintPoolEntry, RoundSecret } from "@/types/game-firestore-types";
@@ -7,10 +16,13 @@ import type { Round, TermIndexDoc, HintPoolEntry, RoundSecret } from "@/types/ga
 export async function createRound(roomId: string, createdBy: string): Promise<string> {
   const roundId = nanoid(10);
   const roundSalt = nanoid(16);
+  // Auto-increment roundNumber based on existing rounds count
+  const existing = await getDocs(collection(db, "rooms", roomId, "rounds"));
+  const roundNumber = existing.size + 1;
   await setDoc(doc(db, "rooms", roomId, "rounds", roundId), {
     roundId,
     status: "draft",
-    roundNumber: 1,
+    roundNumber,
     roundSalt,
     termCount: 0,
     createdBy,

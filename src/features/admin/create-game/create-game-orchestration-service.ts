@@ -10,8 +10,6 @@ import {
   writeRoundSecret,
   updateRoundStatus,
 } from "@/lib/firestore/round-firestore-repository";
-import { updateDoc, doc } from "firebase/firestore";
-import { db } from "@/lib/firebase-app-init";
 import type { GeneratedRound } from "@/lib/gemini/generated-round-zod-schema";
 
 type CreateGameInput = {
@@ -45,7 +43,7 @@ export async function createGame(
     generated = input.preValidated;
     onProgress({ step: "validating", message: "Dữ liệu đã được xác thực." });
   } else {
-    onProgress({ step: "generating", message: "Gemini đang tạo keyword và 1000 từ liên quan…" });
+    onProgress({ step: "generating", message: "Gemini đang tạo keyword và 500 từ liên quan…" });
     generated = await generateRoundWithGemini({
       apiKey: input.apiKey,
       model: input.model,
@@ -77,11 +75,8 @@ export async function createGame(
   await writeTermIndex(input.roomId, roundId, termEntries);
   await writeHintPool(input.roomId, roundId, hintPool);
   await writeRoundSecret(input.roomId, roundId, { keyword: generated.keyword, normalizedKeyword });
+  // Mark round ready — it enters the game library; session lifecycle is managed by admin panel
   await updateRoundStatus(input.roomId, roundId, "ready");
-  await updateDoc(doc(db, "rooms", input.roomId), {
-    currentRoundId: roundId,
-    status: "active",
-  });
 
   onProgress({ step: "done", message: "Round đã sẵn sàng!" });
 

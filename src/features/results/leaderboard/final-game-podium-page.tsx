@@ -1,7 +1,8 @@
 import { motion } from "motion/react";
-import { useParams, Link } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { Trophy, Medal } from "lucide-react";
 import { usePlayersListener } from "@/hooks/use-players-realtime-listener";
+import { ROOM_ID } from "@/lib/firestore/single-room-id-constant";
 import { useGameStore } from "@/stores/game-session-store";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/tailwind-class-merge-utils";
@@ -14,9 +15,8 @@ const PODIUM_HEIGHTS = ["h-20", "h-28", "h-16"]; // center tallest
 const PODIUM_POSITIONS = [1, 0, 2]; // display position index
 
 export function FinalGamePodiumPage() {
-  const { roomId } = useParams({ from: "/room/$roomId/podium" });
   const { isAdmin } = useGameStore();
-  const players = usePlayersListener(roomId ?? null);
+  const players = usePlayersListener(ROOM_ID);
   const sorted = [...players].sort((a, b) => b.totalScore - a.totalScore);
 
   const top3 = PODIUM_ORDER.map((idx) => sorted[idx] ?? null);
@@ -85,7 +85,7 @@ export function FinalGamePodiumPage() {
 
       {isAdmin && (
         <Button asChild>
-          <Link to="/admin">Tạo phòng mới</Link>
+          <Link to="/admin">Về Admin</Link>
         </Button>
       )}
     </div>

@@ -2,7 +2,6 @@ import { create } from "zustand";
 import type { LocalGuess } from "@/types/game-firestore-types";
 
 type GameStore = {
-  roomId: string | null;
   uid: string | null;
   playerName: string | null;
   isAdmin: boolean;
@@ -10,7 +9,6 @@ type GameStore = {
   localGuesses: LocalGuess[];
   bestRank: number | null;
   usedHints: number;
-  setRoom: (roomId: string) => void;
   setPlayer: (uid: string, name: string, isAdmin?: boolean) => void;
   setRound: (roundId: string) => void;
   addLocalGuess: (guess: LocalGuess) => void;
@@ -21,7 +19,6 @@ type GameStore = {
 };
 
 export const useGameStore = create<GameStore>((set) => ({
-  roomId: null,
   uid: null,
   playerName: null,
   isAdmin: false,
@@ -30,7 +27,6 @@ export const useGameStore = create<GameStore>((set) => ({
   bestRank: null,
   usedHints: 0,
 
-  setRoom: (roomId) => set({ roomId }),
   setPlayer: (uid, name, isAdmin = false) => set({ uid, playerName: name, isAdmin }),
   setRound: (roundId) => set({ currentRoundId: roundId }),
   addLocalGuess: (guess) => set((s) => ({ localGuesses: [guess, ...s.localGuesses] })),
@@ -41,7 +37,6 @@ export const useGameStore = create<GameStore>((set) => ({
     set({ localGuesses: [], bestRank: null, usedHints: 0, currentRoundId: null }),
   resetAll: () =>
     set({
-      roomId: null,
       uid: null,
       playerName: null,
       isAdmin: false,

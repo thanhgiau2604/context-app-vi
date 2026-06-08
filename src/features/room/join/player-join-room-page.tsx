@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { Loader2, LogIn } from "lucide-react";
 import { toast } from "sonner";
 import { ensureAnonymousUser } from "@/lib/firebase-anonymous-auth";
 import { getRoom } from "@/lib/firestore/room-firestore-repository";
 import { joinRoom } from "@/lib/firestore/player-firestore-repository";
+import { ROOM_ID } from "@/lib/firestore/single-room-id-constant";
 import { useGameStore } from "@/stores/game-session-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,40 +14,32 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 
 export function PlayerJoinRoomPage() {
-  const { room: roomIdParam = "" } = useSearch({ from: "/" });
   const navigate = useNavigate();
-  const { setRoom, setPlayer } = useGameStore();
-  const [roomId, setRoomId] = useState(roomIdParam.toUpperCase());
+  const { setPlayer } = useGameStore();
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (roomIdParam) setRoomId(roomIdParam.toUpperCase());
-  }, [roomIdParam]);
 
   async function handleJoin(e: React.FormEvent) {
     e.preventDefault();
     const trimmedName = name.trim();
-    const trimmedRoom = roomId.trim().toUpperCase();
-    if (!trimmedName || !trimmedRoom) return;
+    if (!trimmedName) return;
 
     setLoading(true);
     try {
-      const room = await getRoom(trimmedRoom);
-      if (!room) {
-        toast.error("Phòng không tồn tại.");
+      const room = await getRoom(ROOM_ID);
+      if (!room || room.status === "idle") {
+        toast.error("Phòng chưa mở. Chờ admin bấm Mở phòng chờ.");
         return;
       }
       if (room.status === "ended") {
-        toast.error("Phòng đã kết thúc.");
+        toast.error("Phiên chơi đã kết thúc.");
         return;
       }
 
       const user = await ensureAnonymousUser();
-      await joinRoom(trimmedRoom, user.uid, trimmedName);
-      setRoom(trimmedRoom);
+      await joinRoom(ROOM_ID, user.uid, trimmedName);
       setPlayer(user.uid, trimmedName, false);
-      void navigate({ to: "/room/$roomId", params: { roomId: trimmedRoom } });
+      void navigate({ to: "/lobby" });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Có lỗi xảy ra.");
     } finally {
@@ -64,17 +57,6 @@ export function PlayerJoinRoomPage() {
         <CardContent>
           <form onSubmit={handleJoin} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="room-code">Mã phòng</Label>
-              <Input
-                id="room-code"
-                placeholder="VD: ABCD1234"
-                value={roomId}
-                onChange={(e) => setRoomId(e.target.value.toUpperCase())}
-                maxLength={8}
-                className="font-mono tracking-widest uppercase"
-              />
-            </div>
-            <div className="flex flex-col gap-2">
               <Label htmlFor="player-name">Tên của bạn</Label>
               <Input
                 id="player-name"
@@ -82,10 +64,10 @@ export function PlayerJoinRoomPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 maxLength={20}
-                autoFocus={!!roomIdParam}
+                autoFocus
               />
             </div>
-            <Button type="submit" disabled={loading || !name.trim() || !roomId.trim()}>
+            <Button type="submit" disabled={loading || !name.trim()}>
               {loading ? (
                 <Loader2 size={16} className="mr-2 animate-spin" />
               ) : (

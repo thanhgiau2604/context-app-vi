@@ -6,9 +6,10 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isAdmin(roomId) {
+    // Any email-authed user is admin — no extra Firestore read needed
+    function isAdmin() {
       return signedIn()
-        && get(/databases/$(database)/documents/rooms/$(roomId)).data.adminUid == request.auth.uid;
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
 
     function isSelf(uid) {
@@ -28,48 +29,48 @@ service cloud.firestore {
     // ── Rooms ──────────────────────────────────────────────────────────────
     match /rooms/{roomId} {
       allow read: if signedIn();
-      allow create: if signedIn() && request.resource.data.adminUid == request.auth.uid;
-      allow update: if isAdmin(roomId);
+      allow create: if isAdmin();
+      allow update: if isAdmin();
       allow delete: if false;
 
       // ── Players ──────────────────────────────────────────────────────────
       match /players/{uid} {
         allow read: if signedIn();
         allow create: if isSelf(uid);
-        allow update: if isSelf(uid) || isAdmin(roomId);
+        allow update: if isSelf(uid) || isAdmin();
         allow delete: if false;
       }
 
       // ── Rounds ───────────────────────────────────────────────────────────
       match /rounds/{roundId} {
         allow read: if signedIn();
-        allow create, update: if isAdmin(roomId);
+        allow create, update: if isAdmin();
         allow delete: if false;
 
-        // termIndex: players can get by known hash but cannot list all 1000 docs
+        // termIndex: players can get by known hash but cannot list all docs
         match /termIndex/{termHash} {
           allow get: if signedIn();
           allow list: if false;
-          allow create, update, delete: if isAdmin(roomId);
+          allow create, update, delete: if isAdmin();
         }
 
         // hintPool: individual gets allowed, list blocked to prevent bulk dump
         match /hintPool/{rank} {
           allow get: if signedIn();
           allow list: if false;
-          allow create, update, delete: if isAdmin(roomId);
+          allow create, update, delete: if isAdmin();
         }
 
         // private/secret: admin always; player only after finishing or round revealed
         match /private/{docId} {
-          allow read: if isAdmin(roomId)
+          allow read: if isAdmin()
             || (signedIn() && (playerFinished(roomId, roundId) || roundRevealed(roomId, roundId)));
-          allow create, update, delete: if isAdmin(roomId);
+          allow create, update, delete: if isAdmin();
         }
 
         // playerRounds: self read/write; admin read
         match /playerRounds/{uid} {
-          allow read: if isSelf(uid) || isAdmin(roomId);
+          allow read: if isSelf(uid) || isAdmin();
           allow create: if isSelf(uid);
           allow update: if isSelf(uid);
           allow delete: if false;
@@ -78,7 +79,7 @@ service cloud.firestore {
         // publicResults: all signed-in can read; self or admin write
         match /publicResults/{uid} {
           allow read: if signedIn();
-          allow create, update: if isSelf(uid) || isAdmin(roomId);
+          allow create, update: if isSelf(uid) || isAdmin();
           allow delete: if false;
         }
       }

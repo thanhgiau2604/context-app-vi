@@ -1,7 +1,9 @@
 import { Timestamp } from "firebase/firestore";
 
-export type RoomStatus = "created" | "lobby" | "active" | "ended";
-export type RoundStatus = "draft" | "ready" | "playing" | "locked" | "revealed" | "completed";
+// idle: room exists, no active session | waiting: players can join | playing: game running | ended: session over
+export type RoomStatus = "idle" | "waiting" | "playing" | "ended";
+// draft: being written to Firestore | ready: in game library | playing: active round | completed: done
+export type RoundStatus = "draft" | "ready" | "playing" | "completed";
 export type PlayerRoundStatus = "playing" | "solved" | "surrendered";
 
 export type Room = {
