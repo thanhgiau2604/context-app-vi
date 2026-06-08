@@ -35,7 +35,8 @@ export async function generateRoundWithGemini(input: GenerateInput): Promise<Gen
   if (!text) throw new Error("Gemini không trả về nội dung hợp lệ.");
 
   const parsed = JSON.parse(text);
-  const result = GeneratedRoundSchema.safeParse(parsed);
+  const sanitized = sanitizeRelatedTerms(parsed);
+  const result = GeneratedRoundSchema.safeParse(sanitized);
   if (!result.success) {
     const issues = result.error.issues.map((i) => i.message).join(", ");
     throw new Error(`Dữ liệu Gemini không hợp lệ: ${issues}`);
@@ -45,6 +46,38 @@ export async function generateRoundWithGemini(input: GenerateInput): Promise<Gen
   if (extraErrors.length > 0) throw new Error(extraErrors.join("\n"));
 
   return result.data;
+}
+
+// Deduplicates relatedTerms by normalized term text and by rank before Zod validation.
+// Gemini occasionally returns duplicate entries; this sanitizer salvages the output
+// rather than throwing and forcing a costly retry.
+function sanitizeRelatedTerms(parsed: unknown): unknown {
+  if (!parsed || typeof parsed !== "object") return parsed;
+  const p = parsed as Record<string, unknown>;
+  if (!Array.isArray(p.relatedTerms)) return parsed;
+
+  const seenTerms = new Set<string>();
+  const seenRanks = new Set<number>();
+  const deduped: unknown[] = [];
+
+  for (const item of p.relatedTerms) {
+    if (!item || typeof item !== "object") continue;
+    const t = item as { term?: unknown; rank?: unknown };
+    if (typeof t.term !== "string" || typeof t.rank !== "number") continue;
+
+    const normalized = t.term.trim().toLowerCase();
+    if (!normalized || seenTerms.has(normalized)) continue;
+    if (seenRanks.has(t.rank)) continue;
+
+    seenTerms.add(normalized);
+    seenRanks.add(t.rank);
+    deduped.push(item);
+  }
+
+  // Sort by rank ascending to preserve game semantics
+  deduped.sort((a, b) => (a as { rank: number }).rank - (b as { rank: number }).rank);
+
+  return { ...p, relatedTerms: deduped };
 }
 
 // Test connection with a trivial prompt — no game data generated

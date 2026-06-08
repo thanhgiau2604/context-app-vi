@@ -2,12 +2,13 @@ import { z } from "zod";
 
 export const RelatedTermSchema = z.object({
   term: z.string().min(1).max(50),
-  rank: z.number().int().min(2).max(1001),
+  rank: z.number().int().min(2).max(501),
 });
 
 export const GeneratedRoundSchema = z.object({
   keyword: z.string().min(1),
-  relatedTerms: z.array(RelatedTermSchema).length(1000),
+  // Accept 400–510 items — sanitizer deduplicates before validation so exact 500 not enforced
+  relatedTerms: z.array(RelatedTermSchema).min(400).max(510),
 });
 
 export type GeneratedRound = z.infer<typeof GeneratedRoundSchema>;

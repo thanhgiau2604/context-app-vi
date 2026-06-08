@@ -8,8 +8,7 @@ export function getRankTier(rank: number | null): RankTier {
   if (rank <= 50) return "hot";
   if (rank <= 100) return "warm";
   if (rank <= 300) return "close";
-  if (rank <= 600) return "cool";
-  return "far";
+  return "cool"; // rank 301–500 (corpus max = 500)
 }
 
 // Tailwind classes using CSS token vars defined in src/index.css

@@ -17,18 +17,18 @@ export function buildVietnameseContextoPrompt(options: PromptOptions = {}): stri
 ${topicLine}
 ${diffLine}
 
-Hãy tạo 1 keyword bí mật và 1000 từ/cụm từ tiếng Việt liên quan, sắp xếp theo mức độ liên quan giảm dần.
+Hãy tạo 1 keyword bí mật và 500 từ/cụm từ tiếng Việt liên quan, sắp xếp theo mức độ liên quan giảm dần.
 
 Yêu cầu:
 - Keyword phải gồm đúng 2 từ tiếng Việt.
 - Keyword phải thông dụng, không quá chuyên ngành, không phản cảm.
 - Mỗi related term dài tối đa 3 từ (1, 2 hoặc 3 từ đều được).
 - Related terms phải thông dụng trong tiếng Việt.
-- Không trùng lặp.
+- Không trùng lặp bất kỳ term nào.
 - Không dùng từ tiếng Anh nếu không thật sự phổ biến ở Việt Nam.
 - Không đưa keyword vào relatedTerms.
 - Rank càng nhỏ càng gần keyword. relatedTerms bắt đầu từ rank 2.
-- relatedTerms phải có đúng 1000 item.
+- relatedTerms phải có đúng 500 item, rank từ 2 đến 501.
 
 Output JSON hợp lệ, không giải thích gì thêm:
 
