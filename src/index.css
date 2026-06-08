@@ -1,0 +1,243 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  color-scheme: dark;
+
+  --radius: 1rem;
+
+  /* Base */
+  --background: oklch(0.145 0.035 265);
+  --foreground: oklch(0.985 0.006 255);
+
+  --card: oklch(0.19 0.04 265 / 0.82);
+  --card-foreground: oklch(0.985 0.006 255);
+
+  --popover: oklch(0.18 0.04 265);
+  --popover-foreground: oklch(0.985 0.006 255);
+
+  /* Brand */
+  --primary: oklch(0.68 0.18 292);
+  --primary-foreground: oklch(0.99 0.006 255);
+
+  --secondary: oklch(0.28 0.055 260);
+  --secondary-foreground: oklch(0.94 0.012 255);
+
+  --accent: oklch(0.78 0.13 205);
+  --accent-foreground: oklch(0.13 0.03 260);
+
+  --muted: oklch(0.245 0.04 260);
+  --muted-foreground: oklch(0.72 0.025 255);
+
+  /* Semantic */
+  --destructive: oklch(0.64 0.22 25);
+  --destructive-foreground: oklch(0.99 0.006 255);
+
+  --success: oklch(0.72 0.16 155);
+  --success-foreground: oklch(0.12 0.03 155);
+
+  --warning: oklch(0.82 0.17 78);
+  --warning-foreground: oklch(0.16 0.04 78);
+
+  --info: oklch(0.76 0.13 220);
+  --info-foreground: oklch(0.12 0.03 250);
+
+  /* Border / Input / Ring */
+  --border: oklch(0.33 0.045 265 / 0.75);
+  --input: oklch(0.255 0.04 265);
+  --ring: oklch(0.72 0.15 292);
+
+  /* Game rank colors */
+  --rank-exact: oklch(0.86 0.18 88);
+  --rank-ultra: oklch(0.78 0.16 72);
+  --rank-hot: oklch(0.72 0.18 38);
+  --rank-warm: oklch(0.72 0.16 145);
+  --rank-close: oklch(0.74 0.13 198);
+  --rank-cool: oklch(0.65 0.12 258);
+  --rank-far: oklch(0.54 0.07 270);
+  --rank-unknown: oklch(0.42 0.025 260);
+
+  /* Game surfaces */
+  --game-glow-primary: oklch(0.68 0.18 292 / 0.34);
+  --game-glow-accent: oklch(0.78 0.13 205 / 0.22);
+  --game-surface-1: oklch(0.18 0.04 265 / 0.72);
+  --game-surface-2: oklch(0.23 0.045 265 / 0.66);
+  --game-surface-3: oklch(0.3 0.055 265 / 0.52);
+
+  /* Charts / leaderboard */
+  --chart-1: oklch(0.82 0.17 78);
+  --chart-2: oklch(0.76 0.13 205);
+  --chart-3: oklch(0.68 0.18 292);
+  --chart-4: oklch(0.72 0.16 155);
+  --chart-5: oklch(0.65 0.16 25);
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+/* Tailwind v4 theme mapping */
+@theme inline {
+  --font-sans: "Be Vietnam Pro", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", ui-monospace, monospace;
+
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 10px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-rank-exact: var(--rank-exact);
+  --color-rank-ultra: var(--rank-ultra);
+  --color-rank-hot: var(--rank-hot);
+  --color-rank-warm: var(--rank-warm);
+  --color-rank-close: var(--rank-close);
+  --color-rank-cool: var(--rank-cool);
+  --color-rank-far: var(--rank-far);
+  --color-rank-unknown: var(--rank-unknown);
+
+  /* Game surface tokens */
+  --color-game-surface-1: var(--game-surface-1);
+  --color-game-surface-2: var(--game-surface-2);
+  --color-game-surface-3: var(--game-surface-3);
+
+  /* Chart tokens */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply min-h-screen bg-background text-foreground antialiased;
+    background:
+      radial-gradient(circle at 20% 10%, var(--game-glow-primary), transparent 34rem),
+      radial-gradient(circle at 80% 20%, var(--game-glow-accent), transparent 30rem),
+      linear-gradient(
+        135deg,
+        oklch(0.12 0.04 265),
+        oklch(0.17 0.035 245) 48%,
+        oklch(0.12 0.035 280)
+      );
+  }
+
+  ::selection {
+    background: color-mix(in oklch, var(--primary) 55%, transparent);
+    color: var(--foreground);
+  }
+}
+
+@layer utilities {
+  .game-container {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .game-card {
+    @apply rounded-2xl border border-white/10 bg-card/80 shadow-2xl backdrop-blur-xl;
+  }
+
+  .game-card-soft {
+    @apply rounded-2xl border border-white/10 bg-white/[0.045] shadow-xl backdrop-blur-md;
+  }
+
+  .game-glow {
+    box-shadow:
+      0 0 0 1px color-mix(in oklch, var(--primary) 20%, transparent),
+      0 18px 80px color-mix(in oklch, var(--primary) 20%, transparent);
+  }
+
+  .text-gradient-brand {
+    @apply bg-gradient-to-r from-primary via-accent to-rank-exact bg-clip-text text-transparent;
+  }
+
+  .rank-exact {
+    @apply border-rank-exact/50 bg-rank-exact/15 text-rank-exact;
+  }
+
+  .rank-ultra {
+    @apply border-rank-ultra/50 bg-rank-ultra/15 text-rank-ultra;
+  }
+
+  .rank-hot {
+    @apply border-rank-hot/50 bg-rank-hot/15 text-rank-hot;
+  }
+
+  .rank-warm {
+    @apply border-rank-warm/50 bg-rank-warm/15 text-rank-warm;
+  }
+
+  .rank-close {
+    @apply border-rank-close/50 bg-rank-close/15 text-rank-close;
+  }
+
+  .rank-cool {
+    @apply border-rank-cool/50 bg-rank-cool/15 text-rank-cool;
+  }
+
+  .rank-far {
+    @apply border-rank-far/50 bg-rank-far/15 text-rank-far;
+  }
+
+  .rank-unknown {
+    @apply border-rank-unknown/50 bg-rank-unknown/15 text-muted-foreground;
+  }
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
+}
