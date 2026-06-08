@@ -32,11 +32,13 @@ Panel (side or bottom depending on viewport):
 Data source: `subscribeToPublicResults()` from Phase 08.
 
 Sort order:
+
 1. `solved` before `surrendered`
 2. Among solved: by `finishOrder` ascending (fastest first)
 3. Among surrendered: by `bestRank` ascending (closest first)
 
 Each row:
+
 - `solved` → `text-success` + trophy/check icon
 - `surrendered` → `text-muted-foreground` + white flag icon
 - Animate in with `motion` slide from right on appear (`AnimatePresence`)
@@ -65,7 +67,7 @@ Score bar: `motion` width animation on score change.
 <motion.div
   className="h-2 rounded-full bg-primary"
   animate={{ width: `${(score / maxScore) * 100}%` }}
-  transition={{ duration: 0.6, ease: 'easeOut' }}
+  transition={{ duration: 0.6, ease: "easeOut" }}
 />
 ```
 
@@ -92,6 +94,7 @@ Full screen:
 ```
 
 Animations (Motion):
+
 - Podium blocks rise from bottom (`y: 100 → 0`) sequentially
 - Names fade in after podium renders
 - Score count-up effect
@@ -99,16 +102,16 @@ Animations (Motion):
 
 ```tsx
 // Podium animation sequence
-const podiumOrder = [2, 1, 3] // render 2nd first, then 1st, then 3rd
+const podiumOrder = [2, 1, 3]; // render 2nd first, then 1st, then 3rd
 podiumOrder.forEach((pos, i) => (
   <motion.div
     key={pos}
     initial={{ y: 80, opacity: 0 }}
     animate={{ y: 0, opacity: 1 }}
-    transition={{ delay: i * 0.3, type: 'spring', stiffness: 200 }}
-    className={cn('flex flex-col items-center', pos === 1 && 'scale-110')}
+    transition={{ delay: i * 0.3, type: "spring", stiffness: 200 }}
+    className={cn("flex flex-col items-center", pos === 1 && "scale-110")}
   />
-))
+));
 ```
 
 ---
@@ -116,17 +119,17 @@ podiumOrder.forEach((pos, i) => (
 ### `src/hooks/use-room-listener.ts`
 
 ```ts
-import { subscribeToRoom } from '@/lib/firestore/room-firestore-repository'
-import { useEffect, useState } from 'react'
-import type { Room } from '@/types/game.types'
+import { subscribeToRoom } from "@/lib/firestore/room-firestore-repository";
+import { useEffect, useState } from "react";
+import type { Room } from "@/types/game.types";
 
 export function useRoomListener(roomId: string) {
-  const [room, setRoom] = useState<Room | null>(null)
+  const [room, setRoom] = useState<Room | null>(null);
   useEffect(() => {
-    if (!roomId) return
-    return subscribeToRoom(roomId, setRoom)
-  }, [roomId])
-  return room
+    if (!roomId) return;
+    return subscribeToRoom(roomId, setRoom);
+  }, [roomId]);
+  return room;
 }
 ```
 
@@ -135,17 +138,17 @@ export function useRoomListener(roomId: string) {
 ### `src/hooks/use-players-listener.ts`
 
 ```ts
-import { subscribeToPlayers } from '@/lib/firestore/room-firestore-repository'
-import { useEffect, useState } from 'react'
-import type { Player } from '@/types/game.types'
+import { subscribeToPlayers } from "@/lib/firestore/room-firestore-repository";
+import { useEffect, useState } from "react";
+import type { Player } from "@/types/game.types";
 
 export function usePlayersListener(roomId: string) {
-  const [players, setPlayers] = useState<Player[]>([])
+  const [players, setPlayers] = useState<Player[]>([]);
   useEffect(() => {
-    if (!roomId) return
-    return subscribeToPlayers(roomId, setPlayers)
-  }, [roomId])
-  return players
+    if (!roomId) return;
+    return subscribeToPlayers(roomId, setPlayers);
+  }, [roomId]);
+  return players;
 }
 ```
 
@@ -154,17 +157,17 @@ export function usePlayersListener(roomId: string) {
 ### `src/hooks/use-public-results-realtime.ts`
 
 ```ts
-import { subscribeToPublicResults } from './use-public-results-listener'
-import { useEffect, useState } from 'react'
-import type { PublicRoundResult } from '@/types/game.types'
+import { subscribeToPublicResults } from "./use-public-results-listener";
+import { useEffect, useState } from "react";
+import type { PublicRoundResult } from "@/types/game.types";
 
 export function usePublicResultsRealtime(roomId: string, roundId: string) {
-  const [results, setResults] = useState<PublicRoundResult[]>([])
+  const [results, setResults] = useState<PublicRoundResult[]>([]);
   useEffect(() => {
-    if (!roomId || !roundId) return
-    return subscribeToPublicResults(roomId, roundId, setResults)
-  }, [roomId, roundId])
-  return results
+    if (!roomId || !roundId) return;
+    return subscribeToPublicResults(roomId, roundId, setResults);
+  }, [roomId, roundId]);
+  return results;
 }
 ```
 
@@ -185,6 +188,7 @@ GamePageLayout
 ```
 
 Navigation logic (in parent):
+
 - Listen room status
 - `lobby` → redirect to lobby page
 - `active` → show game layout

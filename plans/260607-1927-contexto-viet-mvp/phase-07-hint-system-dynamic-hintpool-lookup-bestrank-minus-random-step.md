@@ -15,13 +15,13 @@ When player clicks hint: pick `targetRank = max(2, bestRank - random(1..5))` →
 
 ## Hint rules recap
 
-| Condition | Result |
-|-----------|--------|
+| Condition           | Result                    |
+| ------------------- | ------------------------- |
 | `bestRank === null` | Block — chưa đoán lần nào |
-| `bestRank <= 2` | Block — quá gần keyword |
-| `usedHints >= 3` | Block — hết lượt hint |
-| Round not `playing` | Block |
-| Otherwise | Allow |
+| `bestRank <= 2`     | Block — quá gần keyword   |
+| `usedHints >= 3`    | Block — hết lượt hint     |
+| Round not `playing` | Block                     |
+| Otherwise           | Allow                     |
 
 Penalty: hint 1 → -25, hint 2 → -45, hint 3 → -70
 
@@ -32,28 +32,23 @@ Penalty: hint 1 → -25, hint 2 → -45, hint 3 → -70
 ### `src/lib/firestore/hint-pool-firestore-lookup-service.ts`
 
 ```ts
-import { db } from '@/lib/firebase'
-import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore'
-import type { HintPoolEntry } from '@/types/game.types'
+import { db } from "@/lib/firebase";
+import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
+import type { HintPoolEntry } from "@/types/game.types";
 
 // Get the hintPool entry with highest rank that is still ≤ targetRank
 // hintPool docs are keyed by zero-padded rank string ("0010", "0100", etc.)
 export async function getHintForTargetRank(
   roomId: string,
   roundId: string,
-  targetRank: number
+  targetRank: number,
 ): Promise<HintPoolEntry | null> {
-  const poolRef = collection(db, 'rooms', roomId, 'rounds', roundId, 'hintPool')
+  const poolRef = collection(db, "rooms", roomId, "rounds", roundId, "hintPool");
   // Query: rank <= targetRank, order by rank desc, take 1
-  const q = query(
-    poolRef,
-    where('rank', '<=', targetRank),
-    orderBy('rank', 'desc'),
-    limit(1)
-  )
-  const snap = await getDocs(q)
-  if (snap.empty) return null
-  return snap.docs[0].data() as HintPoolEntry
+  const q = query(poolRef, where("rank", "<=", targetRank), orderBy("rank", "desc"), limit(1));
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+  return snap.docs[0].data() as HintPoolEntry;
 }
 ```
 
@@ -62,41 +57,45 @@ export async function getHintForTargetRank(
 ### `src/features/gameplay/hint/hint-logic-service.ts`
 
 ```ts
-import { getHintForTargetRank } from '@/lib/firestore/hint-pool-firestore-lookup-service'
+import { getHintForTargetRank } from "@/lib/firestore/hint-pool-firestore-lookup-service";
 
-const HINT_PENALTIES = [25, 45, 70] // index 0,1,2 = hint 1,2,3
+const HINT_PENALTIES = [25, 45, 70]; // index 0,1,2 = hint 1,2,3
 
 export type HintResult = {
-  term: string
-  rank: number
-  penalty: number
-  hintIndex: number // 1, 2, or 3
-}
+  term: string;
+  rank: number;
+  penalty: number;
+  hintIndex: number; // 1, 2, or 3
+};
 
 export type HintBlockReason =
-  | 'not-guessed-yet'
-  | 'too-close'
-  | 'no-hints-left'
-  | 'round-not-playing'
+  | "not-guessed-yet"
+  | "too-close"
+  | "no-hints-left"
+  | "round-not-playing";
 
 export function getHintBlockReason(
   bestRank: number | null,
   usedHints: number,
-  roundStatus: string
+  roundStatus: string,
 ): HintBlockReason | null {
-  if (roundStatus !== 'playing') return 'round-not-playing'
-  if (bestRank === null) return 'not-guessed-yet'
-  if (bestRank <= 2) return 'too-close'
-  if (usedHints >= 3) return 'no-hints-left'
-  return null
+  if (roundStatus !== "playing") return "round-not-playing";
+  if (bestRank === null) return "not-guessed-yet";
+  if (bestRank <= 2) return "too-close";
+  if (usedHints >= 3) return "no-hints-left";
+  return null;
 }
 
 export function getHintBlockMessage(reason: HintBlockReason): string {
   switch (reason) {
-    case 'not-guessed-yet': return 'Hãy đoán ít nhất một từ trước khi dùng gợi ý.'
-    case 'too-close': return 'Bạn đã rất gần đáp án. Không thể mở thêm gợi ý — hãy đoán keyword cuối cùng!'
-    case 'no-hints-left': return 'Bạn đã dùng hết 3 lượt gợi ý.'
-    case 'round-not-playing': return 'Round chưa bắt đầu hoặc đã kết thúc.'
+    case "not-guessed-yet":
+      return "Hãy đoán ít nhất một từ trước khi dùng gợi ý.";
+    case "too-close":
+      return "Bạn đã rất gần đáp án. Không thể mở thêm gợi ý — hãy đoán keyword cuối cùng!";
+    case "no-hints-left":
+      return "Bạn đã dùng hết 3 lượt gợi ý.";
+    case "round-not-playing":
+      return "Round chưa bắt đầu hoặc đã kết thúc.";
   }
 }
 
@@ -104,25 +103,25 @@ export async function resolveHint(
   roomId: string,
   roundId: string,
   bestRank: number,
-  usedHints: number
+  usedHints: number,
 ): Promise<HintResult | null> {
   // Random step 1–5, capped so hint rank >= 2
-  const maxStep = Math.min(5, bestRank - 2) // bestRank > 2 guaranteed by caller
-  if (maxStep < 1) return null
+  const maxStep = Math.min(5, bestRank - 2); // bestRank > 2 guaranteed by caller
+  if (maxStep < 1) return null;
 
-  const step = Math.floor(Math.random() * maxStep) + 1
-  const targetRank = bestRank - step
+  const step = Math.floor(Math.random() * maxStep) + 1;
+  const targetRank = bestRank - step;
 
-  const entry = await getHintForTargetRank(roomId, roundId, targetRank)
-  if (!entry) return null
+  const entry = await getHintForTargetRank(roomId, roundId, targetRank);
+  if (!entry) return null;
 
-  const hintIndex = usedHints + 1 // 1-based
+  const hintIndex = usedHints + 1; // 1-based
   return {
     term: entry.term,
     rank: entry.rank,
     penalty: HINT_PENALTIES[usedHints],
     hintIndex,
-  }
+  };
 }
 ```
 
@@ -141,6 +140,7 @@ HintPanel
 ```
 
 On hint button click:
+
 1. Check `getHintBlockReason()` → if not null, show toast with message, return
 2. Call `resolveHint()`
 3. If null result → toast "Không tìm được gợi ý phù hợp"
@@ -155,7 +155,7 @@ On hint button click:
 // HintSlot
 <motion.div
   animate={revealed ? { rotateY: 0 } : { rotateY: 0 }}
-  className={cn('rounded-xl border p-4', revealed ? rankTierColorClass[tier] : 'bg-game-surface-2')}
+  className={cn("rounded-xl border p-4", revealed ? rankTierColorClass[tier] : "bg-game-surface-2")}
 >
   {revealed ? (
     <>
@@ -173,35 +173,39 @@ On hint button click:
 ### `src/lib/firestore/player-round-firestore-service.ts`
 
 ```ts
-import { db } from '@/lib/firebase'
-import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
-import type { PlayerRound } from '@/types/game.types'
+import { db } from "@/lib/firebase";
+import { doc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import type { PlayerRound } from "@/types/game.types";
 
 export async function initPlayerRound(roomId: string, roundId: string, uid: string) {
-  await setDoc(doc(db, 'rooms', roomId, 'rounds', roundId, 'playerRounds', uid), {
+  await setDoc(doc(db, "rooms", roomId, "rounds", roundId, "playerRounds", uid), {
     uid,
-    status: 'playing',
+    status: "playing",
     startedAt: serverTimestamp(),
     guessCount: 0,
     bestRank: null,
     usedHints: 0,
     hintPenalty: 0,
     roundScore: 0,
-  } satisfies Omit<PlayerRound, 'startedAt'> & { startedAt: unknown })
+  } satisfies Omit<PlayerRound, "startedAt"> & { startedAt: unknown });
 }
 
 export async function updatePlayerRoundAfterGuess(
-  roomId: string, roundId: string, uid: string,
-  update: { guessCount: number; bestRank: number | null }
+  roomId: string,
+  roundId: string,
+  uid: string,
+  update: { guessCount: number; bestRank: number | null },
 ) {
-  await updateDoc(doc(db, 'rooms', roomId, 'rounds', roundId, 'playerRounds', uid), update)
+  await updateDoc(doc(db, "rooms", roomId, "rounds", roundId, "playerRounds", uid), update);
 }
 
 export async function updatePlayerRoundAfterHint(
-  roomId: string, roundId: string, uid: string,
-  update: { usedHints: number; hintPenalty: number }
+  roomId: string,
+  roundId: string,
+  uid: string,
+  update: { usedHints: number; hintPenalty: number },
 ) {
-  await updateDoc(doc(db, 'rooms', roomId, 'rounds', roundId, 'playerRounds', uid), update)
+  await updateDoc(doc(db, "rooms", roomId, "rounds", roundId, "playerRounds", uid), update);
 }
 ```
 

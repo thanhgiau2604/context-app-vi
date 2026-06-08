@@ -27,46 +27,52 @@ rooms/{roomId}/players/{uid}            Player doc
 ### `src/lib/firestore/room-firestore-repository.ts`
 
 ```ts
-import { db } from '@/lib/firebase'
+import { db } from "@/lib/firebase";
 import {
-  doc, setDoc, updateDoc, getDoc, onSnapshot,
-  collection, serverTimestamp, Timestamp
-} from 'firebase/firestore'
-import type { Room, Player } from '@/types/game.types'
-import { nanoid } from 'nanoid'
+  doc,
+  setDoc,
+  updateDoc,
+  getDoc,
+  onSnapshot,
+  collection,
+  serverTimestamp,
+  Timestamp,
+} from "firebase/firestore";
+import type { Room, Player } from "@/types/game.types";
+import { nanoid } from "nanoid";
 
 export async function createRoom(adminUid: string): Promise<string> {
-  const roomId = nanoid(8).toUpperCase()
-  const roomRef = doc(db, 'rooms', roomId)
+  const roomId = nanoid(8).toUpperCase();
+  const roomRef = doc(db, "rooms", roomId);
   await setDoc(roomRef, {
     roomId,
     adminUid,
-    status: 'lobby',
+    status: "lobby",
     playerCount: 0,
     createdAt: serverTimestamp(),
-  } satisfies Omit<Room, 'createdAt'> & { createdAt: unknown })
-  return roomId
+  } satisfies Omit<Room, "createdAt"> & { createdAt: unknown });
+  return roomId;
 }
 
 export async function getRoom(roomId: string): Promise<Room | null> {
-  const snap = await getDoc(doc(db, 'rooms', roomId))
-  return snap.exists() ? (snap.data() as Room) : null
+  const snap = await getDoc(doc(db, "rooms", roomId));
+  return snap.exists() ? (snap.data() as Room) : null;
 }
 
-export async function updateRoomStatus(roomId: string, status: Room['status']) {
-  await updateDoc(doc(db, 'rooms', roomId), { status })
+export async function updateRoomStatus(roomId: string, status: Room["status"]) {
+  await updateDoc(doc(db, "rooms", roomId), { status });
 }
 
 export function subscribeToRoom(roomId: string, callback: (room: Room | null) => void) {
-  return onSnapshot(doc(db, 'rooms', roomId), (snap) => {
-    callback(snap.exists() ? (snap.data() as Room) : null)
-  })
+  return onSnapshot(doc(db, "rooms", roomId), (snap) => {
+    callback(snap.exists() ? (snap.data() as Room) : null);
+  });
 }
 
 export function subscribeToPlayers(roomId: string, callback: (players: Player[]) => void) {
-  return onSnapshot(collection(db, 'rooms', roomId, 'players'), (snap) => {
-    callback(snap.docs.map((d) => d.data() as Player))
-  })
+  return onSnapshot(collection(db, "rooms", roomId, "players"), (snap) => {
+    callback(snap.docs.map((d) => d.data() as Player));
+  });
 }
 ```
 
@@ -75,26 +81,26 @@ export function subscribeToPlayers(roomId: string, callback: (players: Player[])
 ### `src/lib/firestore/player-firestore-repository.ts`
 
 ```ts
-import { db } from '@/lib/firebase'
-import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
-import type { Player } from '@/types/game.types'
+import { db } from "@/lib/firebase";
+import { doc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import type { Player } from "@/types/game.types";
 
 export async function joinRoom(roomId: string, uid: string, name: string): Promise<void> {
-  await setDoc(doc(db, 'rooms', roomId, 'players', uid), {
+  await setDoc(doc(db, "rooms", roomId, "players", uid), {
     uid,
     name,
     joinedAt: serverTimestamp(),
     isActive: true,
     totalScore: 0,
     lastSeenAt: serverTimestamp(),
-  } satisfies Omit<Player, 'joinedAt' | 'lastSeenAt'> & { joinedAt: unknown; lastSeenAt: unknown })
+  } satisfies Omit<Player, "joinedAt" | "lastSeenAt"> & { joinedAt: unknown; lastSeenAt: unknown });
 }
 
 export async function updatePlayerScore(roomId: string, uid: string, totalScore: number) {
-  await updateDoc(doc(db, 'rooms', roomId, 'players', uid), {
+  await updateDoc(doc(db, "rooms", roomId, "players", uid), {
     totalScore,
     lastSeenAt: serverTimestamp(),
-  })
+  });
 }
 ```
 
@@ -103,6 +109,7 @@ export async function updatePlayerScore(roomId: string, uid: string, totalScore:
 ### `src/features/room/join/player-join-room-page.tsx`
 
 Flow:
+
 1. Read `roomId` from URL params
 2. Call `ensureAnonymousUser()` on mount
 3. Check room exists + status is `lobby` or `active`
@@ -110,6 +117,7 @@ Flow:
 5. On submit: `joinRoom(roomId, uid, name)` → `setPlayer(uid, name)` → navigate to `/room/:roomId`
 
 UI:
+
 ```
 Centered card
   - Game logo / title
@@ -139,6 +147,7 @@ Player sees:
 ```
 
 Hooks:
+
 - `subscribeToRoom(roomId, ...)` — watch room status, navigate when `active`
 - `subscribeToPlayers(roomId, ...)` — realtime player list
 

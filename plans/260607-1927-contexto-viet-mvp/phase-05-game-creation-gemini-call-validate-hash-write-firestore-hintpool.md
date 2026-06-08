@@ -29,71 +29,72 @@ rooms/{roomId}/rounds/{roundId}/private/secret      keyword plaintext
 ### `src/lib/firestore/round-firestore-repository.ts`
 
 ```ts
-import { db } from '@/lib/firebase'
+import { db } from "@/lib/firebase";
 import {
-  doc, setDoc, writeBatch, serverTimestamp, updateDoc, collection
-} from 'firebase/firestore'
-import { nanoid } from 'nanoid'
-import type { Round, TermIndexDoc, HintPoolEntry, RoundSecret } from '@/types/game.types'
+  doc,
+  setDoc,
+  writeBatch,
+  serverTimestamp,
+  updateDoc,
+  collection,
+} from "firebase/firestore";
+import { nanoid } from "nanoid";
+import type { Round, TermIndexDoc, HintPoolEntry, RoundSecret } from "@/types/game.types";
 
 export async function createRound(roomId: string, createdBy: string): Promise<string> {
-  const roundId = nanoid(10)
-  const roundSalt = nanoid(16)
-  await setDoc(doc(db, 'rooms', roomId, 'rounds', roundId), {
+  const roundId = nanoid(10);
+  const roundSalt = nanoid(16);
+  await setDoc(doc(db, "rooms", roomId, "rounds", roundId), {
     roundId,
-    status: 'draft',
+    status: "draft",
     roundNumber: 1,
     roundSalt,
     termCount: 0,
     createdBy,
     createdAt: serverTimestamp(),
-  } satisfies Partial<Round> & { createdAt: unknown })
-  return roundId
+  } satisfies Partial<Round> & { createdAt: unknown });
+  return roundId;
 }
 
 // Firestore batch limit = 500 ops. Split 1000 termIndex into 2 batches.
 export async function writeTermIndex(
   roomId: string,
   roundId: string,
-  entries: Array<{ hash: string; rank: number; type: 'keyword' | 'related' }>
+  entries: Array<{ hash: string; rank: number; type: "keyword" | "related" }>,
 ) {
-  const chunks = chunkArray(entries, 499)
+  const chunks = chunkArray(entries, 499);
   for (const chunk of chunks) {
-    const batch = writeBatch(db)
+    const batch = writeBatch(db);
     for (const entry of chunk) {
-      const ref = doc(db, 'rooms', roomId, 'rounds', roundId, 'termIndex', entry.hash)
-      batch.set(ref, { rank: entry.rank, type: entry.type } satisfies TermIndexDoc)
+      const ref = doc(db, "rooms", roomId, "rounds", roundId, "termIndex", entry.hash);
+      batch.set(ref, { rank: entry.rank, type: entry.type } satisfies TermIndexDoc);
     }
-    await batch.commit()
+    await batch.commit();
   }
 }
 
-export async function writeHintPool(
-  roomId: string,
-  roundId: string,
-  entries: HintPoolEntry[]
-) {
-  const batch = writeBatch(db)
+export async function writeHintPool(roomId: string, roundId: string, entries: HintPoolEntry[]) {
+  const batch = writeBatch(db);
   for (const entry of entries) {
-    const rankKey = String(entry.rank).padStart(4, '0')
-    const ref = doc(db, 'rooms', roomId, 'rounds', roundId, 'hintPool', rankKey)
-    batch.set(ref, entry)
+    const rankKey = String(entry.rank).padStart(4, "0");
+    const ref = doc(db, "rooms", roomId, "rounds", roundId, "hintPool", rankKey);
+    batch.set(ref, entry);
   }
-  await batch.commit()
+  await batch.commit();
 }
 
 export async function writeRoundSecret(roomId: string, roundId: string, secret: RoundSecret) {
-  await setDoc(doc(db, 'rooms', roomId, 'rounds', roundId, 'private', 'secret'), secret)
+  await setDoc(doc(db, "rooms", roomId, "rounds", roundId, "private", "secret"), secret);
 }
 
-export async function updateRoundStatus(roomId: string, roundId: string, status: Round['status']) {
-  await updateDoc(doc(db, 'rooms', roomId, 'rounds', roundId), { status })
+export async function updateRoundStatus(roomId: string, roundId: string, status: Round["status"]) {
+  await updateDoc(doc(db, "rooms", roomId, "rounds", roundId), { status });
 }
 
 function chunkArray<T>(arr: T[], size: number): T[][] {
-  const chunks: T[][] = []
-  for (let i = 0; i < arr.length; i += size) chunks.push(arr.slice(i, i + size))
-  return chunks
+  const chunks: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) chunks.push(arr.slice(i, i + size));
+  return chunks;
 }
 ```
 
@@ -104,83 +105,90 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
 Orchestrates the full flow: Gemini → validate → normalize → hash → Firestore write.
 
 ```ts
-import { generateRoundWithGemini } from '@/lib/gemini/gemini-round-generation-service'
-import { normalizeVietnamese } from '@/lib/utils/normalize-vi'
-import { hashTerm } from '@/lib/utils/term-hash'
-import { buildHintPool } from '@/lib/utils/hint-pool-builder'
+import { generateRoundWithGemini } from "@/lib/gemini/gemini-round-generation-service";
+import { normalizeVietnamese } from "@/lib/utils/normalize-vi";
+import { hashTerm } from "@/lib/utils/term-hash";
+import { buildHintPool } from "@/lib/utils/hint-pool-builder";
 import {
-  createRound, writeTermIndex, writeHintPool,
-  writeRoundSecret, updateRoundStatus
-} from '@/lib/firestore/round-firestore-repository'
-import { updateDoc, doc } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
-import { nanoid } from 'nanoid'
+  createRound,
+  writeTermIndex,
+  writeHintPool,
+  writeRoundSecret,
+  updateRoundStatus,
+} from "@/lib/firestore/round-firestore-repository";
+import { updateDoc, doc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { nanoid } from "nanoid";
 
 type CreateGameInput = {
-  roomId: string
-  adminUid: string
-  apiKey: string
-  model: string
-  topic?: string
-  difficulty?: 'easy' | 'medium' | 'hard'
-}
+  roomId: string;
+  adminUid: string;
+  apiKey: string;
+  model: string;
+  topic?: string;
+  difficulty?: "easy" | "medium" | "hard";
+};
 
 type CreateGameProgress = {
-  step: 'generating' | 'validating' | 'hashing' | 'writing' | 'done'
-  message: string
-}
+  step: "generating" | "validating" | "hashing" | "writing" | "done";
+  message: string;
+};
 
 export async function createGame(
   input: CreateGameInput,
-  onProgress: (p: CreateGameProgress) => void
-): Promise<{ roundId: string; keyword: string; previewTerms: Array<{ term: string; rank: number }> }> {
-  onProgress({ step: 'generating', message: 'Gemini đang tạo keyword và 1000 từ liên quan...' })
-  const generated = await generateRoundWithGemini(input)
+  onProgress: (p: CreateGameProgress) => void,
+): Promise<{
+  roundId: string;
+  keyword: string;
+  previewTerms: Array<{ term: string; rank: number }>;
+}> {
+  onProgress({ step: "generating", message: "Gemini đang tạo keyword và 1000 từ liên quan..." });
+  const generated = await generateRoundWithGemini(input);
 
-  onProgress({ step: 'validating', message: 'Đang kiểm tra dữ liệu...' })
+  onProgress({ step: "validating", message: "Đang kiểm tra dữ liệu..." });
   // Validation already done inside generateRoundWithGemini via Zod
 
-  onProgress({ step: 'hashing', message: 'Đang xử lý và hash dữ liệu...' })
-  const roundId = await createRound(input.roomId, input.adminUid)
+  onProgress({ step: "hashing", message: "Đang xử lý và hash dữ liệu..." });
+  const roundId = await createRound(input.roomId, input.adminUid);
 
   // Read roundSalt from just-created round
-  const { getDoc } = await import('firebase/firestore')
-  const roundSnap = await getDoc(doc(db, 'rooms', input.roomId, 'rounds', roundId))
-  const roundSalt = roundSnap.data()!.roundSalt as string
+  const { getDoc } = await import("firebase/firestore");
+  const roundSnap = await getDoc(doc(db, "rooms", input.roomId, "rounds", roundId));
+  const roundSalt = roundSnap.data()!.roundSalt as string;
 
-  const normalizedKeyword = normalizeVietnamese(generated.keyword)
-  const keywordHash = await hashTerm(roundSalt, normalizedKeyword)
+  const normalizedKeyword = normalizeVietnamese(generated.keyword);
+  const keywordHash = await hashTerm(roundSalt, normalizedKeyword);
 
-  const termEntries: Array<{ hash: string; rank: number; type: 'keyword' | 'related' }> = []
-  termEntries.push({ hash: keywordHash, rank: 1, type: 'keyword' })
+  const termEntries: Array<{ hash: string; rank: number; type: "keyword" | "related" }> = [];
+  termEntries.push({ hash: keywordHash, rank: 1, type: "keyword" });
 
   for (const t of generated.relatedTerms) {
-    const normalized = normalizeVietnamese(t.term)
-    const hash = await hashTerm(roundSalt, normalized)
-    termEntries.push({ hash, rank: t.rank, type: 'related' })
+    const normalized = normalizeVietnamese(t.term);
+    const hash = await hashTerm(roundSalt, normalized);
+    termEntries.push({ hash, rank: t.rank, type: "related" });
   }
 
-  const hintPool = buildHintPool(generated.relatedTerms)
+  const hintPool = buildHintPool(generated.relatedTerms);
 
-  onProgress({ step: 'writing', message: 'Đang lưu vào database...' })
-  await writeTermIndex(input.roomId, roundId, termEntries)
-  await writeHintPool(input.roomId, roundId, hintPool)
+  onProgress({ step: "writing", message: "Đang lưu vào database..." });
+  await writeTermIndex(input.roomId, roundId, termEntries);
+  await writeHintPool(input.roomId, roundId, hintPool);
   await writeRoundSecret(input.roomId, roundId, {
     keyword: generated.keyword,
     normalizedKeyword,
-  })
-  await updateRoundStatus(input.roomId, roundId, 'ready')
+  });
+  await updateRoundStatus(input.roomId, roundId, "ready");
 
   // Update room's currentRoundId
-  await updateDoc(doc(db, 'rooms', input.roomId), { currentRoundId: roundId })
+  await updateDoc(doc(db, "rooms", input.roomId), { currentRoundId: roundId });
 
-  onProgress({ step: 'done', message: 'Round đã sẵn sàng!' })
+  onProgress({ step: "done", message: "Round đã sẵn sàng!" });
 
   return {
     roundId,
     keyword: generated.keyword,
     previewTerms: generated.relatedTerms.slice(0, 20),
-  }
+  };
 }
 ```
 
@@ -210,11 +218,13 @@ Dialog: Create New Game
 ```
 
 State machine:
+
 ```
 idle → generating → preview → confirming → done | error
 ```
 
 Error handling:
+
 - Gemini API error → toast error, stay on idle
 - Validate error → list all errors inline
 - Firestore write error → toast, allow retry

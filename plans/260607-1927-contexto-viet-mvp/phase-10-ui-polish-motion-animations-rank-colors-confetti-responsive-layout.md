@@ -28,19 +28,19 @@ All mapped to Tailwind via `@theme inline`. Use `bg-rank-exact`, `text-game-surf
 
 ## Animation inventory
 
-| Trigger | Animation | Motion API |
-|---------|-----------|-----------|
-| Unknown word submit | Input shake left-right | `useAnimation` + `animate({ x: [-4,4,-4,0] })` |
-| Valid guess appears | Row slide-in from top | `initial={{ opacity:0, y:-8 }} animate={{ opacity:1, y:0 }}` |
-| Hint card reveal | 3D flip (Y-axis) | `initial={{ rotateY:90 }} animate={{ rotateY:0 }}` |
-| Solved | Confetti burst | `canvas-confetti` or Motion keyframes |
-| Solved overlay | Scale + fade in | `initial={{ scale:0.8, opacity:0 }} animate={{ scale:1, opacity:1 }}` |
-| Podium blocks | Rise from bottom sequentially | `y: 80→0` with staggered delay |
-| Score bar | Width expand | `animate={{ width: '${pct}%' }}` |
-| Results row appear | Slide from right | `initial={{ x:40, opacity:0 }}` |
-| Round transition | Fade + scale | `exit={{ opacity:0, scale:0.95 }}` |
-| Toast notifications | Slide from top-right | shadcn Toaster (built-in) |
-| BestRank badge update | Pulse ring | `animate={{ scale:[1,1.15,1] }} transition={{ duration:0.3 }}` |
+| Trigger               | Animation                     | Motion API                                                            |
+| --------------------- | ----------------------------- | --------------------------------------------------------------------- |
+| Unknown word submit   | Input shake left-right        | `useAnimation` + `animate({ x: [-4,4,-4,0] })`                        |
+| Valid guess appears   | Row slide-in from top         | `initial={{ opacity:0, y:-8 }} animate={{ opacity:1, y:0 }}`          |
+| Hint card reveal      | 3D flip (Y-axis)              | `initial={{ rotateY:90 }} animate={{ rotateY:0 }}`                    |
+| Solved                | Confetti burst                | `canvas-confetti` or Motion keyframes                                 |
+| Solved overlay        | Scale + fade in               | `initial={{ scale:0.8, opacity:0 }} animate={{ scale:1, opacity:1 }}` |
+| Podium blocks         | Rise from bottom sequentially | `y: 80→0` with staggered delay                                        |
+| Score bar             | Width expand                  | `animate={{ width: '${pct}%' }}`                                      |
+| Results row appear    | Slide from right              | `initial={{ x:40, opacity:0 }}`                                       |
+| Round transition      | Fade + scale                  | `exit={{ opacity:0, scale:0.95 }}`                                    |
+| Toast notifications   | Slide from top-right          | shadcn Toaster (built-in)                                             |
+| BestRank badge update | Pulse ring                    | `animate={{ scale:[1,1.15,1] }} transition={{ duration:0.3 }}`        |
 
 ---
 
@@ -56,15 +56,15 @@ bun add -d @types/canvas-confetti
 ### `src/features/gameplay/round/solved-confetti-effect.ts`
 
 ```ts
-import confetti from 'canvas-confetti'
+import confetti from "canvas-confetti";
 
 export function fireSolvedConfetti() {
   confetti({
     particleCount: 120,
     spread: 80,
     origin: { y: 0.6 },
-    colors: ['#f5c518', '#7c3aed', '#06b6d4', '#10b981'],
-  })
+    colors: ["#f5c518", "#7c3aed", "#06b6d4", "#10b981"],
+  });
 }
 ```
 
@@ -75,24 +75,26 @@ export function fireSolvedConfetti() {
 Reusable badge showing rank number with tier color:
 
 ```tsx
-import { getRankTier, rankTierColorClass } from '@/lib/utils/rank-color-classifier'
-import { cn } from '@/lib/tailwind-class-merge-utils'
+import { getRankTier, rankTierColorClass } from "@/lib/utils/rank-color-classifier";
+import { cn } from "@/lib/tailwind-class-merge-utils";
 
-type Props = { rank: number | null; size?: 'sm' | 'md' | 'lg' }
+type Props = { rank: number | null; size?: "sm" | "md" | "lg" };
 
-export function RankBadge({ rank, size = 'md' }: Props) {
-  const tier = getRankTier(rank)
+export function RankBadge({ rank, size = "md" }: Props) {
+  const tier = getRankTier(rank);
   return (
-    <span className={cn(
-      'inline-flex items-center justify-center rounded-md font-mono font-bold border tabular-nums',
-      size === 'sm' && 'px-1.5 py-0.5 text-xs',
-      size === 'md' && 'px-2 py-1 text-sm',
-      size === 'lg' && 'px-3 py-1.5 text-base',
-      rankTierColorClass[tier]
-    )}>
-      {rank === null ? '???' : `#${rank}`}
+    <span
+      className={cn(
+        "inline-flex items-center justify-center rounded-md font-mono font-bold border tabular-nums",
+        size === "sm" && "px-1.5 py-0.5 text-xs",
+        size === "md" && "px-2 py-1 text-sm",
+        size === "lg" && "px-3 py-1.5 text-base",
+        rankTierColorClass[tier],
+      )}
+    >
+      {rank === null ? "???" : `#${rank}`}
     </span>
-  )
+  );
 }
 ```
 
@@ -103,20 +105,26 @@ export function RankBadge({ rank, size = 'md' }: Props) {
 Glassmorphism card for game surfaces:
 
 ```tsx
-export function GameCard({ children, className, glow = false }: {
-  children: React.ReactNode
-  className?: string
-  glow?: boolean
+export function GameCard({
+  children,
+  className,
+  glow = false,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  glow?: boolean;
 }) {
   return (
-    <div className={cn(
-      'rounded-2xl border border-border bg-game-surface-1 backdrop-blur-md',
-      glow && 'shadow-[0_0_24px_var(--game-glow-primary)]',
-      className
-    )}>
+    <div
+      className={cn(
+        "rounded-2xl border border-border bg-game-surface-1 backdrop-blur-md",
+        glow && "shadow-[0_0_24px_var(--game-glow-primary)]",
+        className,
+      )}
+    >
       {children}
     </div>
-  )
+  );
 }
 ```
 
@@ -159,20 +167,20 @@ Mobile: Results board as bottom sheet (shadcn `Sheet`).
 ### `src/features/gameplay/guess/guess-input-shake-animation.tsx`
 
 ```tsx
-import { motion, useAnimation } from 'motion/react'
-import { useImperativeHandle, forwardRef } from 'react'
+import { motion, useAnimation } from "motion/react";
+import { useImperativeHandle, forwardRef } from "react";
 
 export const ShakeWrapper = forwardRef<{ shake: () => void }, { children: React.ReactNode }>(
   ({ children }, ref) => {
-    const controls = useAnimation()
+    const controls = useAnimation();
     useImperativeHandle(ref, () => ({
       shake: async () => {
-        await controls.start({ x: [-5, 5, -4, 4, -2, 0], transition: { duration: 0.35 } })
+        await controls.start({ x: [-5, 5, -4, 4, -2, 0], transition: { duration: 0.35 } });
       },
-    }))
-    return <motion.div animate={controls}>{children}</motion.div>
-  }
-)
+    }));
+    return <motion.div animate={controls}>{children}</motion.div>;
+  },
+);
 ```
 
 ---
@@ -182,8 +190,11 @@ export const ShakeWrapper = forwardRef<{ shake: () => void }, { children: React.
 Add Google Fonts (Be Vietnam Pro + JetBrains Mono) — already referenced in DESIGN.md:
 
 ```html
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link
+  href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
+  rel="stylesheet"
+/>
 ```
 
 ---

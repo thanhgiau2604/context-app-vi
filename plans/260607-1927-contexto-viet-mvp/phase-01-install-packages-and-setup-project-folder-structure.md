@@ -19,15 +19,15 @@ bun add firebase zustand motion zod nanoid lucide-react react-router-dom
 bun add -d @types/node
 ```
 
-| Package | Purpose |
-|---------|---------|
-| `firebase` | Auth Anonymous + Firestore SDK |
-| `zustand` | Game state + Admin state stores |
-| `motion` | Animations (Motion for React, successor to framer-motion) |
-| `zod` | Validate Gemini JSON output |
-| `nanoid` | Generate `roundSalt` |
-| `lucide-react` | Icons (shadcn already configured with lucide) |
-| `react-router-dom` | Client-side routing |
+| Package            | Purpose                                                   |
+| ------------------ | --------------------------------------------------------- |
+| `firebase`         | Auth Anonymous + Firestore SDK                            |
+| `zustand`          | Game state + Admin state stores                           |
+| `motion`           | Animations (Motion for React, successor to framer-motion) |
+| `zod`              | Validate Gemini JSON output                               |
+| `nanoid`           | Generate `roundSalt`                                      |
+| `lucide-react`     | Icons (shadcn already configured with lucide)             |
+| `react-router-dom` | Client-side routing                                       |
 
 ---
 
@@ -81,9 +81,9 @@ Verify `.gitignore` has `.env.local`.
 ```tsx
 // Player-facing routes: join flow, room gameplay
 export const playerRoutes = [
-  { path: '/', element: <JoinPage /> },
-  { path: '/room/:roomId', element: <GamePage /> },
-]
+  { path: "/", element: <JoinPage /> },
+  { path: "/room/:roomId", element: <GamePage /> },
+];
 ```
 
 **File:** `src/routes/admin-routes.tsx`
@@ -91,23 +91,20 @@ export const playerRoutes = [
 ```tsx
 // Admin-only routes: panel + settings
 export const adminRoutes = [
-  { path: '/admin', element: <AdminPanel /> },
-  { path: '/admin/settings', element: <AdminSettings /> },
-]
+  { path: "/admin", element: <AdminPanel /> },
+  { path: "/admin/settings", element: <AdminSettings /> },
+];
 ```
 
 **File:** `src/App.tsx` — wire router:
 
 ```tsx
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
-const router = createBrowserRouter([
-  ...playerRoutes,
-  ...adminRoutes,
-])
+const router = createBrowserRouter([...playerRoutes, ...adminRoutes]);
 
 export default function App() {
-  return <RouterProvider router={router} />
+  return <RouterProvider router={router} />;
 }
 ```
 
@@ -116,16 +113,16 @@ export default function App() {
 ## main.tsx
 
 ```tsx
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.tsx'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import "./index.css";
+import App from "./App.tsx";
 
-createRoot(document.getElementById('root')!).render(
+createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <App />
-  </StrictMode>
-)
+  </StrictMode>,
+);
 ```
 
 ---

@@ -21,19 +21,19 @@
 
 ## Phases
 
-| # | Phase | Status | Effort |
-|---|-------|--------|--------|
-| 01 | [Install Packages & Setup Project Folder Structure](phase-01-install-packages-and-setup-project-folder-structure.md) | ⬜ | S |
-| 02 | [Firestore Types, Schemas, Firebase Init & Anonymous Auth](phase-02-firestore-types-schemas-firebase-init-anonymous-auth.md) | ⬜ | M |
-| 03 | [Admin Settings UI, Gemini Key Storage & Gemini REST Service](phase-03-admin-settings-ui-gemini-key-storage-and-gemini-rest-service.md) | ⬜ | M |
-| 04 | [Room Lifecycle: Admin Create Room, Player Join with Name, Lobby Realtime](phase-04-room-lifecycle-admin-create-room-player-join-with-name-lobby-realtime.md) | ⬜ | M |
-| 05 | [Game Creation: Gemini Call, Validate, Hash, Write Firestore hintPool](phase-05-game-creation-gemini-call-validate-hash-write-firestore-hintpool.md) | ⬜ | L |
-| 06 | [Gameplay Core: Guess Input, Hash Lookup, Rank Display & Local History](phase-06-gameplay-core-guess-input-hash-lookup-rank-display-local-history.md) | ⬜ | L |
-| 07 | [Hint System: Dynamic hintPool Lookup (bestRank - random step 1–5)](phase-07-hint-system-dynamic-hintpool-lookup-bestrank-minus-random-step.md) | ⬜ | M |
-| 08 | [Round Completion: Scoring Formula, Solved, Surrender, Next Round](phase-08-round-completion-scoring-formula-solved-surrender-next-round.md) | ⬜ | M |
-| 09 | [Realtime Results Board, Cumulative Leaderboard & Final Podium](phase-09-realtime-results-board-cumulative-leaderboard-final-podium.md) | ⬜ | M |
-| 10 | [UI Polish: Motion Animations, Rank Colors, Confetti & Responsive Layout](phase-10-ui-polish-motion-animations-rank-colors-confetti-responsive-layout.md) | ⬜ | L |
-| 11 | [Firestore Security Rules: Admin/Player Permissions & termIndex Protection](phase-11-firestore-security-rules-admin-player-permissions-termindex-protection.md) | ⬜ | S |
+| #   | Phase                                                                                                                                                           | Status | Effort |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ------ |
+| 01  | [Install Packages & Setup Project Folder Structure](phase-01-install-packages-and-setup-project-folder-structure.md)                                            | ⬜     | S      |
+| 02  | [Firestore Types, Schemas, Firebase Init & Anonymous Auth](phase-02-firestore-types-schemas-firebase-init-anonymous-auth.md)                                    | ⬜     | M      |
+| 03  | [Admin Settings UI, Gemini Key Storage & Gemini REST Service](phase-03-admin-settings-ui-gemini-key-storage-and-gemini-rest-service.md)                         | ⬜     | M      |
+| 04  | [Room Lifecycle: Admin Create Room, Player Join with Name, Lobby Realtime](phase-04-room-lifecycle-admin-create-room-player-join-with-name-lobby-realtime.md)   | ⬜     | M      |
+| 05  | [Game Creation: Gemini Call, Validate, Hash, Write Firestore hintPool](phase-05-game-creation-gemini-call-validate-hash-write-firestore-hintpool.md)            | ⬜     | L      |
+| 06  | [Gameplay Core: Guess Input, Hash Lookup, Rank Display & Local History](phase-06-gameplay-core-guess-input-hash-lookup-rank-display-local-history.md)           | ⬜     | L      |
+| 07  | [Hint System: Dynamic hintPool Lookup (bestRank - random step 1–5)](phase-07-hint-system-dynamic-hintpool-lookup-bestrank-minus-random-step.md)                 | ⬜     | M      |
+| 08  | [Round Completion: Scoring Formula, Solved, Surrender, Next Round](phase-08-round-completion-scoring-formula-solved-surrender-next-round.md)                    | ⬜     | M      |
+| 09  | [Realtime Results Board, Cumulative Leaderboard & Final Podium](phase-09-realtime-results-board-cumulative-leaderboard-final-podium.md)                         | ⬜     | M      |
+| 10  | [UI Polish: Motion Animations, Rank Colors, Confetti & Responsive Layout](phase-10-ui-polish-motion-animations-rank-colors-confetti-responsive-layout.md)       | ⬜     | L      |
+| 11  | [Firestore Security Rules: Admin/Player Permissions & termIndex Protection](phase-11-firestore-security-rules-admin-player-permissions-termindex-protection.md) | ⬜     | S      |
 
 ---
 

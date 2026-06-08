@@ -126,24 +126,24 @@ firebase emulators:start
 
 ### Test cases to verify
 
-| Scenario | Expected |
-|----------|----------|
-| Signed-in player reads `rooms/{roomId}` | ✅ Allow |
-| Unauthenticated reads any doc | ❌ Deny |
-| Player creates `players/{ownUid}` | ✅ Allow |
-| Player creates `players/{otherUid}` | ❌ Deny |
-| Player updates `rooms/{roomId}` (not admin) | ❌ Deny |
-| Admin updates `rooms/{roomId}` | ✅ Allow |
-| Player `get` known `termIndex/{hash}` | ✅ Allow |
-| Player `list` `termIndex` collection | ❌ Deny |
-| Player `get` known `hintPool/{rank}` | ✅ Allow |
-| Player `list` `hintPool` collection | ❌ Deny |
-| Player reads `private/secret` before solving | ❌ Deny |
-| Player reads `private/secret` after solving | ✅ Allow |
+| Scenario                                            | Expected |
+| --------------------------------------------------- | -------- |
+| Signed-in player reads `rooms/{roomId}`             | ✅ Allow |
+| Unauthenticated reads any doc                       | ❌ Deny  |
+| Player creates `players/{ownUid}`                   | ✅ Allow |
+| Player creates `players/{otherUid}`                 | ❌ Deny  |
+| Player updates `rooms/{roomId}` (not admin)         | ❌ Deny  |
+| Admin updates `rooms/{roomId}`                      | ✅ Allow |
+| Player `get` known `termIndex/{hash}`               | ✅ Allow |
+| Player `list` `termIndex` collection                | ❌ Deny  |
+| Player `get` known `hintPool/{rank}`                | ✅ Allow |
+| Player `list` `hintPool` collection                 | ❌ Deny  |
+| Player reads `private/secret` before solving        | ❌ Deny  |
+| Player reads `private/secret` after solving         | ✅ Allow |
 | Player reads `private/secret` when round `revealed` | ✅ Allow |
-| Player writes own `playerRounds/{uid}` | ✅ Allow |
-| Player writes other's `playerRounds/{otherUid}` | ❌ Deny |
-| Player writes `publicResults/{ownUid}` | ✅ Allow |
+| Player writes own `playerRounds/{uid}`              | ✅ Allow |
+| Player writes other's `playerRounds/{otherUid}`     | ❌ Deny  |
+| Player writes `publicResults/{ownUid}`              | ✅ Allow |
 
 ---
 
@@ -175,10 +175,10 @@ firebase emulators:start
 ```ts
 // src/lib/firebase.ts — add at bottom for local dev
 if (import.meta.env.DEV) {
-  const { connectFirestoreEmulator } = await import('firebase/firestore')
-  const { connectAuthEmulator } = await import('firebase/auth')
-  connectAuthEmulator(auth, 'http://localhost:9099')
-  connectFirestoreEmulator(db, 'localhost', 8080)
+  const { connectFirestoreEmulator } = await import("firebase/firestore");
+  const { connectAuthEmulator } = await import("firebase/auth");
+  connectAuthEmulator(auth, "http://localhost:9099");
+  connectFirestoreEmulator(db, "localhost", 8080);
 }
 ```
 

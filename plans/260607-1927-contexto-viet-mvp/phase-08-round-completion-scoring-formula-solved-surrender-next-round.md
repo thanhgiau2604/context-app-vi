@@ -19,39 +19,44 @@ Handle solved (rank = 1), surrender, score calculation, publicResult write, roun
 // src/lib/utils/round-score-calculator.ts
 
 function getBaseScore(bestRank: number | null): number {
-  if (!bestRank) return 0
-  if (bestRank === 1) return 1000
-  if (bestRank <= 3) return 750
-  if (bestRank <= 10) return 500
-  if (bestRank <= 50) return 250
-  if (bestRank <= 100) return 120
-  if (bestRank <= 300) return 40
-  if (bestRank <= 1000) return 10
-  return 0
+  if (!bestRank) return 0;
+  if (bestRank === 1) return 1000;
+  if (bestRank <= 3) return 750;
+  if (bestRank <= 10) return 500;
+  if (bestRank <= 50) return 250;
+  if (bestRank <= 100) return 120;
+  if (bestRank <= 300) return 40;
+  if (bestRank <= 1000) return 10;
+  return 0;
 }
 
-function getSpeedBonus(status: 'solved' | 'surrendered', durationSec: number): number {
-  if (status !== 'solved') return 0
-  return Math.max(0, 200 - Math.floor(durationSec * 1.5))
+function getSpeedBonus(status: "solved" | "surrendered", durationSec: number): number {
+  if (status !== "solved") return 0;
+  return Math.max(0, 200 - Math.floor(durationSec * 1.5));
 }
 
 export function calculateRoundScore(params: {
-  status: 'solved' | 'surrendered'
-  bestRank: number | null
-  durationSec: number
-  guessCount: number
-  usedHints: number
+  status: "solved" | "surrendered";
+  bestRank: number | null;
+  durationSec: number;
+  guessCount: number;
+  usedHints: number;
 }): number {
-  const HINT_PENALTIES = [25, 45, 70]
-  const base = getBaseScore(params.bestRank)
-  const solvedBonus = params.status === 'solved' ? 300 : 0
-  const speedBonus = getSpeedBonus(params.status, params.durationSec)
-  const guessPenalty = Math.min(params.guessCount * 3, 120)
-  const hintPenalty = Array.from({ length: params.usedHints }, (_, i) => HINT_PENALTIES[i] ?? 0)
-    .reduce((a, b) => a + b, 0)
-  const surrenderPenalty = params.status === 'surrendered' ? 80 : 0
+  const HINT_PENALTIES = [25, 45, 70];
+  const base = getBaseScore(params.bestRank);
+  const solvedBonus = params.status === "solved" ? 300 : 0;
+  const speedBonus = getSpeedBonus(params.status, params.durationSec);
+  const guessPenalty = Math.min(params.guessCount * 3, 120);
+  const hintPenalty = Array.from(
+    { length: params.usedHints },
+    (_, i) => HINT_PENALTIES[i] ?? 0,
+  ).reduce((a, b) => a + b, 0);
+  const surrenderPenalty = params.status === "surrendered" ? 80 : 0;
 
-  return Math.max(0, base + solvedBonus + speedBonus - guessPenalty - hintPenalty - surrenderPenalty)
+  return Math.max(
+    0,
+    base + solvedBonus + speedBonus - guessPenalty - hintPenalty - surrenderPenalty,
+  );
 }
 ```
 
@@ -68,28 +73,28 @@ Full implementation as above.
 ### `src/features/gameplay/round/round-completion-service.ts`
 
 ```ts
-import { db } from '@/lib/firebase'
-import { doc, updateDoc, setDoc, serverTimestamp, increment } from 'firebase/firestore'
-import { calculateRoundScore } from '@/lib/utils/round-score-calculator'
-import type { PublicRoundResult } from '@/types/game.types'
+import { db } from "@/lib/firebase";
+import { doc, updateDoc, setDoc, serverTimestamp, increment } from "firebase/firestore";
+import { calculateRoundScore } from "@/lib/utils/round-score-calculator";
+import type { PublicRoundResult } from "@/types/game.types";
 
 type FinishRoundParams = {
-  roomId: string
-  roundId: string
-  uid: string
-  name: string
-  status: 'solved' | 'surrendered'
-  bestRank: number | null
-  guessCount: number
-  usedHints: number
-  hintPenalty: number
-  startedAtMs: number
-  finishOrder: number
-}
+  roomId: string;
+  roundId: string;
+  uid: string;
+  name: string;
+  status: "solved" | "surrendered";
+  bestRank: number | null;
+  guessCount: number;
+  usedHints: number;
+  hintPenalty: number;
+  startedAtMs: number;
+  finishOrder: number;
+};
 
 export async function finishPlayerRound(params: FinishRoundParams): Promise<number> {
-  const durationMs = Date.now() - params.startedAtMs
-  const durationSec = durationMs / 1000
+  const durationMs = Date.now() - params.startedAtMs;
+  const durationSec = durationMs / 1000;
 
   const roundScore = calculateRoundScore({
     status: params.status,
@@ -97,17 +102,20 @@ export async function finishPlayerRound(params: FinishRoundParams): Promise<numb
     durationSec,
     guessCount: params.guessCount,
     usedHints: params.usedHints,
-  })
+  });
 
   // Update playerRound
-  await updateDoc(doc(db, 'rooms', params.roomId, 'rounds', params.roundId, 'playerRounds', params.uid), {
-    status: params.status,
-    finishedAt: serverTimestamp(),
-    roundScore,
-  })
+  await updateDoc(
+    doc(db, "rooms", params.roomId, "rounds", params.roundId, "playerRounds", params.uid),
+    {
+      status: params.status,
+      finishedAt: serverTimestamp(),
+      roundScore,
+    },
+  );
 
   // Write publicResult
-  const publicResult: Omit<PublicRoundResult, 'createdAt'> & { createdAt: unknown } = {
+  const publicResult: Omit<PublicRoundResult, "createdAt"> & { createdAt: unknown } = {
     uid: params.uid,
     name: params.name,
     status: params.status,
@@ -118,15 +126,18 @@ export async function finishPlayerRound(params: FinishRoundParams): Promise<numb
     usedHints: params.usedHints,
     roundScore,
     createdAt: serverTimestamp(),
-  }
-  await setDoc(doc(db, 'rooms', params.roomId, 'rounds', params.roundId, 'publicResults', params.uid), publicResult)
+  };
+  await setDoc(
+    doc(db, "rooms", params.roomId, "rounds", params.roundId, "publicResults", params.uid),
+    publicResult,
+  );
 
   // Increment player totalScore
-  await updateDoc(doc(db, 'rooms', params.roomId, 'players', params.uid), {
+  await updateDoc(doc(db, "rooms", params.roomId, "players", params.uid), {
     totalScore: increment(roundScore),
-  })
+  });
 
-  return roundScore
+  return roundScore;
 }
 ```
 
@@ -158,6 +169,7 @@ Dialog: Bỏ cuộc?
 ```
 
 On confirm:
+
 1. Call `finishPlayerRound({ status: 'surrendered', ... })`
 2. Read `private/secret` → show keyword
 3. Show keyword reveal card
@@ -181,19 +193,18 @@ Card with glow border
 
 ```ts
 // Listen to publicResults realtime — drives round lock check + leaderboard
-import { db } from '@/lib/firebase'
-import { collection, onSnapshot } from 'firebase/firestore'
-import type { PublicRoundResult } from '@/types/game.types'
+import { db } from "@/lib/firebase";
+import { collection, onSnapshot } from "firebase/firestore";
+import type { PublicRoundResult } from "@/types/game.types";
 
 export function subscribeToPublicResults(
   roomId: string,
   roundId: string,
-  callback: (results: PublicRoundResult[]) => void
+  callback: (results: PublicRoundResult[]) => void,
 ) {
-  return onSnapshot(
-    collection(db, 'rooms', roomId, 'rounds', roundId, 'publicResults'),
-    (snap) => callback(snap.docs.map((d) => d.data() as PublicRoundResult))
-  )
+  return onSnapshot(collection(db, "rooms", roomId, "rounds", roundId, "publicResults"), (snap) =>
+    callback(snap.docs.map((d) => d.data() as PublicRoundResult)),
+  );
 }
 ```
 
@@ -212,11 +223,13 @@ Logic for "all done": compare `publicResults.length` to active player count.
 Client-side check (no backend): admin listens `publicResults` + `players`.
 
 On Next Round:
+
 1. `updateRoundStatus(roomId, roundId, 'completed')`
 2. Create new round → `createGame()` flow (open Create Game dialog again)
 3. Update `rooms/{roomId}.currentRoundId`
 
 On End Room:
+
 1. `updateRoomStatus(roomId, 'ended')`
 2. Navigate to final leaderboard
 
