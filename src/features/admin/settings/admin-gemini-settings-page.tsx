@@ -66,68 +66,66 @@ export function AdminGeminiSettingsPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-6">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold">Cài đặt Gemini AI</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-5">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="gemini-key">Gemini API Key</Label>
-            <div className="relative">
-              <Input
-                id="gemini-key"
-                type={showKey ? "text" : "password"}
-                placeholder="AIza..."
-                value={keyInput}
-                onChange={(e) => setKeyInput(e.target.value)}
-                className="pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowKey((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
+    <Card className="w-full max-w-md">
+      <CardHeader>
+        <CardTitle className="text-lg font-semibold">Cài đặt Gemini AI</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-5">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="gemini-key">Gemini API Key</Label>
+          <div className="relative">
+            <Input
+              id="gemini-key"
+              type={showKey ? "text" : "password"}
+              placeholder="AIza..."
+              value={keyInput}
+              onChange={(e) => setKeyInput(e.target.value)}
+              className="pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setShowKey((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
           </div>
+        </div>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="gemini-model">Model</Label>
-            <Select value={geminiModel} onValueChange={(v) => setGeminiModel(v as GeminiModel)}>
-              <SelectTrigger id="gemini-model">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="gemini-2.5-flash">gemini-2.5-flash (nhanh)</SelectItem>
-                <SelectItem value="gemini-2.5-pro">gemini-2.5-pro (chất lượng cao)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="gemini-model">Model</Label>
+          <Select value={geminiModel} onValueChange={(v) => setGeminiModel(v as GeminiModel)}>
+            <SelectTrigger id="gemini-model">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="gemini-2.5-flash">gemini-2.5-flash (nhanh)</SelectItem>
+              <SelectItem value="gemini-2.5-pro">gemini-2.5-pro (chất lượng cao)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-          <div className="flex items-center gap-3">
-            <Switch id="remember-key" checked={remember} onCheckedChange={setRemember} />
-            <Label htmlFor="remember-key" className="cursor-pointer">
-              Lưu key trên thiết bị này
-            </Label>
-          </div>
+        <div className="flex items-center gap-3">
+          <Switch id="remember-key" checked={remember} onCheckedChange={setRemember} />
+          <Label htmlFor="remember-key" className="cursor-pointer">
+            Lưu key trên thiết bị này
+          </Label>
+        </div>
 
-          <div className="flex gap-2">
-            <Button onClick={handleTest} disabled={testing} className="flex-1">
-              {testing ? (
-                <Loader2 size={16} className="mr-2 animate-spin" />
-              ) : (
-                <Plug size={16} className="mr-2" />
-              )}
-              Kiểm tra kết nối
-            </Button>
-            <Button variant="outline" onClick={handleClear}>
-              <Trash2 size={16} />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+        <div className="flex gap-2">
+          <Button onClick={handleTest} disabled={testing} className="flex-1">
+            {testing ? (
+              <Loader2 size={16} className="mr-2 animate-spin" />
+            ) : (
+              <Plug size={16} className="mr-2" />
+            )}
+            Kiểm tra kết nối
+          </Button>
+          <Button variant="outline" onClick={handleClear}>
+            <Trash2 size={16} />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

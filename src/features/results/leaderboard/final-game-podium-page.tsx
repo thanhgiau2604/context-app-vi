@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link } from "@tanstack/react-router";
 import { Trophy, Medal } from "lucide-react";
 import { usePlayersListener } from "@/hooks/use-players-realtime-listener";
 import { useGameStore } from "@/stores/game-session-store";
@@ -14,7 +14,7 @@ const PODIUM_HEIGHTS = ["h-20", "h-28", "h-16"]; // center tallest
 const PODIUM_POSITIONS = [1, 0, 2]; // display position index
 
 export function FinalGamePodiumPage() {
-  const { roomId } = useParams<{ roomId: string }>();
+  const { roomId } = useParams({ from: "/room/$roomId/podium" });
   const { isAdmin } = useGameStore();
   const players = usePlayersListener(roomId ?? null);
   const sorted = [...players].sort((a, b) => b.totalScore - a.totalScore);

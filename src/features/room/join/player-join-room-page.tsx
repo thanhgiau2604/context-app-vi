@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { Loader2, LogIn } from "lucide-react";
 import { toast } from "sonner";
 import { ensureAnonymousUser } from "@/lib/firebase-anonymous-auth";
@@ -13,11 +13,9 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 
 export function PlayerJoinRoomPage() {
-  const [searchParams] = useSearchParams();
+  const { room: roomIdParam = "" } = useSearch({ from: "/" });
   const navigate = useNavigate();
   const { setRoom, setPlayer } = useGameStore();
-
-  const roomIdParam = searchParams.get("room") ?? "";
   const [roomId, setRoomId] = useState(roomIdParam.toUpperCase());
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -48,7 +46,7 @@ export function PlayerJoinRoomPage() {
       await joinRoom(trimmedRoom, user.uid, trimmedName);
       setRoom(trimmedRoom);
       setPlayer(user.uid, trimmedName, false);
-      navigate(`/room/${trimmedRoom}`);
+      void navigate({ to: "/room/$roomId", params: { roomId: trimmedRoom } });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Có lỗi xảy ra.");
     } finally {

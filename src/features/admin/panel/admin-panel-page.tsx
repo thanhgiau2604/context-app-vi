@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Loader2, Plus, Settings, Gamepad2, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase-app-init";
@@ -32,7 +32,7 @@ export function AdminPanelPage() {
       const id = await createRoom(user.uid);
       setRoom(id);
       toast.success(`Phòng ${id} đã được tạo!`);
-      navigate(`/room/${id}`);
+      void navigate({ to: "/room/$roomId", params: { roomId: id } });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Không tạo được phòng.");
     } finally {
@@ -42,7 +42,7 @@ export function AdminPanelPage() {
 
   function handleGameCreated(result: CreateGameResult) {
     toast.success(`Game tạo xong! Keyword: ${result.keyword}`);
-    if (roomId) navigate(`/room/${roomId}/game`);
+    if (roomId) void navigate({ to: "/room/$roomId/game", params: { roomId } });
   }
 
   async function handleSignOut() {
@@ -52,7 +52,7 @@ export function AdminPanelPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-6">
+    <>
       <Card className="w-full max-w-sm">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -103,6 +103,6 @@ export function AdminPanelPage() {
           onDone={handleGameCreated}
         />
       )}
-    </div>
+    </>
   );
 }

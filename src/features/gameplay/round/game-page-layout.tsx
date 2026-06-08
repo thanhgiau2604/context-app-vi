@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "@tanstack/react-router";
 import { subscribeToRoom } from "@/lib/firestore/room-firestore-repository";
 import { useRoundSaltLoader } from "@/hooks/use-round-salt-loader";
 import { useGameStore } from "@/stores/game-session-store";
@@ -16,7 +16,7 @@ import { CumulativeScoreLeaderboardPanel } from "@/features/results/leaderboard/
 import type { Room } from "@/types/game-firestore-types";
 
 export function GamePageLayout() {
-  const { roomId } = useParams<{ roomId: string }>();
+  const { roomId } = useParams({ from: "/room/$roomId/game" });
   const navigate = useNavigate();
   const { uid, playerName, currentRoundId, localGuesses, usedHints, setRound } = useGameStore();
   const [room, setRoom] = useState<Room | null>(null);
@@ -37,8 +37,8 @@ export function GamePageLayout() {
     return subscribeToRoom(roomId, (r) => {
       setRoom(r);
       if (r?.currentRoundId && !currentRoundId) setRound(r.currentRoundId);
-      if (r?.status === "lobby") navigate(`/room/${roomId}`);
-      if (r?.status === "ended") navigate(`/room/${roomId}/podium`);
+      if (r?.status === "lobby") void navigate({ to: "/room/$roomId", params: { roomId } });
+      if (r?.status === "ended") void navigate({ to: "/room/$roomId/podium", params: { roomId } });
     });
   }, [roomId, currentRoundId, setRound, navigate]);
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "@tanstack/react-router";
 import { Copy, Users } from "lucide-react";
 import { toast } from "sonner";
 import { subscribeToRoom, subscribeToPlayers } from "@/lib/firestore/room-firestore-repository";
@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import type { Player, Room } from "@/types/game-firestore-types";
 
 export function RoomWaitingLobbyPage() {
-  const { roomId } = useParams<{ roomId: string }>();
+  const { roomId } = useParams({ from: "/room/$roomId" });
   const navigate = useNavigate();
   const { uid, isAdmin } = useGameStore();
   const [room, setRoom] = useState<Room | null>(null);
@@ -20,8 +20,8 @@ export function RoomWaitingLobbyPage() {
     if (!roomId) return;
     const unsub1 = subscribeToRoom(roomId, (r) => {
       setRoom(r);
-      if (r?.status === "active") navigate(`/room/${roomId}/game`);
-      if (r?.status === "ended") navigate(`/room/${roomId}/podium`);
+      if (r?.status === "active") void navigate({ to: "/room/$roomId/game", params: { roomId } });
+      if (r?.status === "ended") void navigate({ to: "/room/$roomId/podium", params: { roomId } });
     });
     const unsub2 = subscribeToPlayers(roomId, setPlayers);
     return () => {
