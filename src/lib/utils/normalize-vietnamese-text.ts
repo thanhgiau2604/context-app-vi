@@ -3,6 +3,6 @@ export function normalizeVietnamese(input: string): string {
   return input
     .trim()
     .toLowerCase()
-    .replace(/[.,!?;:()\[\]{}"']/g, '')
-    .replace(/\s+/g, ' ')
+    .replace(/[.,!?;:()[\]{}"']/g, "")
+    .replace(/\s+/g, " ");
 }

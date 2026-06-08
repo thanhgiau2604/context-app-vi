@@ -1,16 +1,16 @@
 type PromptOptions = {
-  topic?: string
-  difficulty?: 'easy' | 'medium' | 'hard'
-}
+  topic?: string;
+  difficulty?: "easy" | "medium" | "hard";
+};
 
 export function buildVietnameseContextoPrompt(options: PromptOptions = {}): string {
-  const topicLine = options.topic ? `Chủ đề gợi ý: ${options.topic}.` : ''
+  const topicLine = options.topic ? `Chủ đề gợi ý: ${options.topic}.` : "";
   const diffLine =
-    options.difficulty === 'easy'
-      ? 'Chọn keyword phổ biến, dễ nhận biết.'
-      : options.difficulty === 'hard'
-        ? 'Chọn keyword ít phổ biến hơn, thú vị hơn.'
-        : ''
+    options.difficulty === "easy"
+      ? "Chọn keyword phổ biến, dễ nhận biết."
+      : options.difficulty === "hard"
+        ? "Chọn keyword ít phổ biến hơn, thú vị hơn."
+        : "";
 
   return `Bạn là hệ thống tạo dữ liệu cho game đoán từ tiếng Việt giống Contexto.
 
@@ -38,5 +38,5 @@ Output JSON hợp lệ, không giải thích gì thêm:
     { "term": "...", "rank": 2 },
     { "term": "...", "rank": 3 }
   ]
-}`
+}`;
 }

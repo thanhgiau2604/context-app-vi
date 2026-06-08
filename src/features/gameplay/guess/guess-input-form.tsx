@@ -1,49 +1,49 @@
-import { useState } from 'react'
-import { ArrowRight, Loader2 } from 'lucide-react'
-import { toast } from 'sonner'
-import { motion, useAnimation } from 'motion/react'
-import { submitGuess } from './guess-submission-service'
-import { useGameStore } from '@/stores/game-session-store'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { useState } from "react";
+import { ArrowRight, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { motion, useAnimation } from "motion/react";
+import { submitGuess } from "./guess-submission-service";
+import { useGameStore } from "@/stores/game-session-store";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 type Props = {
-  roundSalt: string
-  roomId: string
-  roundId: string
-  disabled?: boolean
-  onSolved?: () => void
-}
+  roundSalt: string;
+  roomId: string;
+  roundId: string;
+  disabled?: boolean;
+  onSolved?: () => void;
+};
 
 export function GuessInputForm({ roundSalt, roomId, roundId, disabled, onSolved }: Props) {
-  const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
-  const { addLocalGuess, updateBestRank } = useGameStore()
-  const controls = useAnimation()
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { addLocalGuess, updateBestRank } = useGameStore();
+  const controls = useAnimation();
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    const trimmed = input.trim()
-    if (!trimmed || loading) return
+    e.preventDefault();
+    const trimmed = input.trim();
+    if (!trimmed || loading) return;
 
-    setLoading(true)
+    setLoading(true);
     try {
-      const result = await submitGuess(trimmed, roundSalt, roomId, roundId)
+      const result = await submitGuess(trimmed, roundSalt, roomId, roundId);
 
       if (result.notFound) {
-        await controls.start({ x: [-5, 5, -4, 4, -2, 0], transition: { duration: 0.35 } })
-        toast.info('Từ này chưa có trong dữ liệu round.')
-        return
+        await controls.start({ x: [-5, 5, -4, 4, -2, 0], transition: { duration: 0.35 } });
+        toast.info("Từ này chưa có trong dữ liệu round.");
+        return;
       }
 
-      addLocalGuess(result.localGuess)
-      if (result.rank !== null) updateBestRank(result.rank)
-      if (result.rank === 1) onSolved?.()
-      setInput('')
+      addLocalGuess(result.localGuess);
+      if (result.rank !== null) updateBestRank(result.rank);
+      if (result.rank === 1) onSolved?.();
+      setInput("");
     } catch {
-      toast.error('Lỗi kết nối. Thử lại.')
+      toast.error("Lỗi kết nối. Thử lại.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -64,5 +64,5 @@ export function GuessInputForm({ roundSalt, roomId, roundId, disabled, onSolved 
         {loading ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
       </Button>
     </form>
-  )
+  );
 }

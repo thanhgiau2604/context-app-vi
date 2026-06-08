@@ -1,52 +1,58 @@
-import { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Loader2, LogIn } from 'lucide-react'
-import { toast } from 'sonner'
-import { ensureAnonymousUser } from '@/lib/firebase-anonymous-auth'
-import { getRoom } from '@/lib/firestore/room-firestore-repository'
-import { joinRoom } from '@/lib/firestore/player-firestore-repository'
-import { useGameStore } from '@/stores/game-session-store'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Loader2, LogIn } from "lucide-react";
+import { toast } from "sonner";
+import { ensureAnonymousUser } from "@/lib/firebase-anonymous-auth";
+import { getRoom } from "@/lib/firestore/room-firestore-repository";
+import { joinRoom } from "@/lib/firestore/player-firestore-repository";
+import { useGameStore } from "@/stores/game-session-store";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 
 export function PlayerJoinRoomPage() {
-  const [searchParams] = useSearchParams()
-  const navigate = useNavigate()
-  const { setRoom, setPlayer } = useGameStore()
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { setRoom, setPlayer } = useGameStore();
 
-  const roomIdParam = searchParams.get('room') ?? ''
-  const [roomId, setRoomId] = useState(roomIdParam.toUpperCase())
-  const [name, setName] = useState('')
-  const [loading, setLoading] = useState(false)
+  const roomIdParam = searchParams.get("room") ?? "";
+  const [roomId, setRoomId] = useState(roomIdParam.toUpperCase());
+  const [name, setName] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (roomIdParam) setRoomId(roomIdParam.toUpperCase())
-  }, [roomIdParam])
+    if (roomIdParam) setRoomId(roomIdParam.toUpperCase());
+  }, [roomIdParam]);
 
   async function handleJoin(e: React.FormEvent) {
-    e.preventDefault()
-    const trimmedName = name.trim()
-    const trimmedRoom = roomId.trim().toUpperCase()
-    if (!trimmedName || !trimmedRoom) return
+    e.preventDefault();
+    const trimmedName = name.trim();
+    const trimmedRoom = roomId.trim().toUpperCase();
+    if (!trimmedName || !trimmedRoom) return;
 
-    setLoading(true)
+    setLoading(true);
     try {
-      const room = await getRoom(trimmedRoom)
-      if (!room) { toast.error('Phòng không tồn tại.'); return }
-      if (room.status === 'ended') { toast.error('Phòng đã kết thúc.'); return }
+      const room = await getRoom(trimmedRoom);
+      if (!room) {
+        toast.error("Phòng không tồn tại.");
+        return;
+      }
+      if (room.status === "ended") {
+        toast.error("Phòng đã kết thúc.");
+        return;
+      }
 
-      const user = await ensureAnonymousUser()
-      await joinRoom(trimmedRoom, user.uid, trimmedName)
-      setRoom(trimmedRoom)
-      setPlayer(user.uid, trimmedName, false)
-      navigate(`/room/${trimmedRoom}`)
+      const user = await ensureAnonymousUser();
+      await joinRoom(trimmedRoom, user.uid, trimmedName);
+      setRoom(trimmedRoom);
+      setPlayer(user.uid, trimmedName, false);
+      navigate(`/room/${trimmedRoom}`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Có lỗi xảy ra.')
+      toast.error(e instanceof Error ? e.message : "Có lỗi xảy ra.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -82,7 +88,11 @@ export function PlayerJoinRoomPage() {
               />
             </div>
             <Button type="submit" disabled={loading || !name.trim() || !roomId.trim()}>
-              {loading ? <Loader2 size={16} className="mr-2 animate-spin" /> : <LogIn size={16} className="mr-2" />}
+              {loading ? (
+                <Loader2 size={16} className="mr-2 animate-spin" />
+              ) : (
+                <LogIn size={16} className="mr-2" />
+              )}
               Tham gia
             </Button>
           </form>
@@ -94,5 +104,5 @@ export function PlayerJoinRoomPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

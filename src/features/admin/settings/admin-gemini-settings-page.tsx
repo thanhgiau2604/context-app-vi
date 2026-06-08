@@ -1,55 +1,68 @@
-import { useEffect, useState } from 'react'
-import { Eye, EyeOff, Loader2, Plug, Trash2 } from 'lucide-react'
-import { toast } from 'sonner'
-import { useAdminStore, type GeminiModel } from '@/stores/admin-gemini-settings-store'
-import { testGeminiConnection } from '@/lib/gemini/gemini-round-generation-service'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useEffect, useState } from "react";
+import { Eye, EyeOff, Loader2, Plug, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { useAdminStore, type GeminiModel } from "@/stores/admin-gemini-settings-store";
+import { testGeminiConnection } from "@/lib/gemini/gemini-round-generation-service";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export function AdminGeminiSettingsPage() {
-  const { geminiApiKey, geminiModel, rememberKey, setGeminiApiKey, setGeminiModel, clearGeminiKey, loadSavedSettings } =
-    useAdminStore()
+  const {
+    geminiApiKey,
+    geminiModel,
+    rememberKey,
+    setGeminiApiKey,
+    setGeminiModel,
+    clearGeminiKey,
+    loadSavedSettings,
+  } = useAdminStore();
 
-  const [keyInput, setKeyInput] = useState(geminiApiKey)
-  const [showKey, setShowKey] = useState(false)
-  const [remember, setRemember] = useState(rememberKey)
-  const [testing, setTesting] = useState(false)
+  const [keyInput, setKeyInput] = useState(geminiApiKey);
+  const [showKey, setShowKey] = useState(false);
+  const [remember, setRemember] = useState(rememberKey);
+  const [testing, setTesting] = useState(false);
 
   useEffect(() => {
-    loadSavedSettings()
-  }, [loadSavedSettings])
+    loadSavedSettings();
+  }, [loadSavedSettings]);
 
   useEffect(() => {
-    setKeyInput(geminiApiKey)
-    setRemember(rememberKey)
-  }, [geminiApiKey, rememberKey])
+    setKeyInput(geminiApiKey);
+    setRemember(rememberKey);
+  }, [geminiApiKey, rememberKey]);
 
   async function handleTest() {
     if (!keyInput.trim()) {
-      toast.error('Nhập API key trước.')
-      return
+      toast.error("Nhập API key trước.");
+      return;
     }
-    setTesting(true)
+    setTesting(true);
     try {
-      await testGeminiConnection(keyInput.trim(), geminiModel)
-      setGeminiApiKey(keyInput.trim(), remember)
-      toast.success('Kết nối Gemini thành công!')
+      await testGeminiConnection(keyInput.trim(), geminiModel);
+      setGeminiApiKey(keyInput.trim(), remember);
+      toast.success("Kết nối Gemini thành công!");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Kết nối thất bại.')
+      toast.error(e instanceof Error ? e.message : "Kết nối thất bại.");
     } finally {
-      setTesting(false)
+      setTesting(false);
     }
   }
 
   function handleClear() {
-    clearGeminiKey()
-    setKeyInput('')
-    setRemember(false)
-    toast.info('Đã xoá API key.')
+    clearGeminiKey();
+    setKeyInput("");
+    setRemember(false);
+    toast.info("Đã xoá API key.");
   }
 
   return (
@@ -64,7 +77,7 @@ export function AdminGeminiSettingsPage() {
             <div className="relative">
               <Input
                 id="gemini-key"
-                type={showKey ? 'text' : 'password'}
+                type={showKey ? "text" : "password"}
                 placeholder="AIza..."
                 value={keyInput}
                 onChange={(e) => setKeyInput(e.target.value)}
@@ -102,7 +115,11 @@ export function AdminGeminiSettingsPage() {
 
           <div className="flex gap-2">
             <Button onClick={handleTest} disabled={testing} className="flex-1">
-              {testing ? <Loader2 size={16} className="mr-2 animate-spin" /> : <Plug size={16} className="mr-2" />}
+              {testing ? (
+                <Loader2 size={16} className="mr-2 animate-spin" />
+              ) : (
+                <Plug size={16} className="mr-2" />
+              )}
               Kiểm tra kết nối
             </Button>
             <Button variant="outline" onClick={handleClear}>
@@ -112,5 +129,5 @@ export function AdminGeminiSettingsPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

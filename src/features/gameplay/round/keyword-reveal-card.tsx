@@ -1,6 +1,6 @@
-import { motion } from 'motion/react'
+import { motion } from "motion/react";
 
-type Props = { keyword: string }
+type Props = { keyword: string };
 
 export function KeywordRevealCard({ keyword }: Props) {
   return (
@@ -12,5 +12,5 @@ export function KeywordRevealCard({ keyword }: Props) {
       <p className="text-xs text-muted-foreground mb-1">Đáp án là:</p>
       <p className="text-2xl font-bold text-rank-exact">{keyword}</p>
     </motion.div>
-  )
+  );
 }

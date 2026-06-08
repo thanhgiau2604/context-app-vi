@@ -1,17 +1,32 @@
-import { db } from '@/lib/firebase-app-init'
-import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore'
-import type { HintPoolEntry } from '@/types/game-firestore-types'
+import { db } from "@/lib/firebase-app-init";
+import { doc, getDoc } from "firebase/firestore";
+import { HINT_POOL_RANKS } from "@/lib/utils/hint-pool-spread-builder";
+import type { HintPoolEntry } from "@/types/game-firestore-types";
 
-// Returns hintPool entry with highest rank still ≤ targetRank
-// Docs keyed by zero-padded rank ("0010", "0100") so lexicographic order = numeric order
+// Returns hintPool entry for the highest HINT_POOL_RANKS slot still ≤ targetRank.
+// Uses getDoc (not getDocs/list) — Firestore rules block list on hintPool but allow get.
+// Doc keys are zero-padded targetRank values (e.g., "0100") written by writeHintPool.
 export async function getHintForTargetRank(
   roomId: string,
   roundId: string,
-  targetRank: number
+  targetRank: number,
 ): Promise<HintPoolEntry | null> {
-  const poolRef = collection(db, 'rooms', roomId, 'rounds', roundId, 'hintPool')
-  const q = query(poolRef, where('rank', '<=', targetRank), orderBy('rank', 'desc'), limit(1))
-  const snap = await getDocs(q)
-  if (snap.empty) return null
-  return snap.docs[0].data() as HintPoolEntry
+  // Descending candidates from known pool slots ≤ targetRank
+  const candidates = HINT_POOL_RANKS.filter((r) => r <= targetRank).reverse();
+
+  for (const poolRank of candidates) {
+    const ref = doc(
+      db,
+      "rooms",
+      roomId,
+      "rounds",
+      roundId,
+      "hintPool",
+      String(poolRank).padStart(4, "0"),
+    );
+    const snap = await getDoc(ref);
+    if (snap.exists()) return snap.data() as HintPoolEntry;
+  }
+
+  return null;
 }

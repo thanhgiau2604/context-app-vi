@@ -1,32 +1,34 @@
-import { useState } from 'react'
-import { Loader2, LogIn } from 'lucide-react'
-import { toast } from 'sonner'
-import { signInAdmin } from '@/lib/firebase-email-password-auth-service'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
+import { useState } from "react";
+import { Loader2, LogIn } from "lucide-react";
+import { toast } from "sonner";
+import { signInAdmin } from "@/lib/firebase-email-password-auth-service";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 
 export function AdminLoginPage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function handleLogin(e: React.FormEvent) {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault();
+    setLoading(true);
     try {
-      await signInAdmin(email.trim(), password)
+      await signInAdmin(email.trim(), password);
       // Auth state change triggers AdminAuthGuard to show dashboard
     } catch (err: unknown) {
-      const code = (err as { code?: string })?.code
+      const code = (err as { code?: string })?.code;
       const msg =
-        code === 'auth/invalid-credential' ? 'Email hoặc mật khẩu không đúng.' :
-        code === 'auth/too-many-requests'   ? 'Quá nhiều lần thử. Vui lòng thử lại sau.' :
-        'Đăng nhập thất bại.'
-      toast.error(msg)
+        code === "auth/invalid-credential"
+          ? "Email hoặc mật khẩu không đúng."
+          : code === "auth/too-many-requests"
+            ? "Quá nhiều lần thử. Vui lòng thử lại sau."
+            : "Đăng nhập thất bại.";
+      toast.error(msg);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -63,14 +65,16 @@ export function AdminLoginPage() {
               />
             </div>
             <Button type="submit" disabled={loading || !email || !password}>
-              {loading
-                ? <Loader2 size={16} className="mr-2 animate-spin" />
-                : <LogIn size={16} className="mr-2" />}
+              {loading ? (
+                <Loader2 size={16} className="mr-2 animate-spin" />
+              ) : (
+                <LogIn size={16} className="mr-2" />
+              )}
               Đăng nhập
             </Button>
           </form>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

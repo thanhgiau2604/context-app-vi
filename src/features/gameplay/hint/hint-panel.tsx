@@ -1,64 +1,66 @@
-import { useState } from 'react'
-import { Lightbulb, Loader2 } from 'lucide-react'
-import { toast } from 'sonner'
+import { useState } from "react";
+import { Lightbulb, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import {
   resolveHint,
   getHintBlockReason,
   getHintBlockMessage,
   type HintResult,
-} from './hint-logic-service'
-import { updatePlayerRoundAfterHint } from '@/lib/firestore/player-round-firestore-service'
-import { HintSlotFlipCard } from './hint-slot-flip-card'
-import { useGameStore } from '@/stores/game-session-store'
-import { Button } from '@/components/ui/button'
+} from "./hint-logic-service";
+import { updatePlayerRoundAfterHint } from "@/lib/firestore/player-round-firestore-service";
+import { HintSlotFlipCard } from "./hint-slot-flip-card";
+import { useGameStore } from "@/stores/game-session-store";
+import { Button } from "@/components/ui/button";
 
 type Props = {
-  roomId: string
-  roundId: string
-  uid: string
-  roundStatus: string
-}
+  roomId: string;
+  roundId: string;
+  uid: string;
+  roundStatus: string;
+};
 
 export function HintPanel({ roomId, roundId, uid, roundStatus }: Props) {
-  const { bestRank, usedHints, incrementUsedHints } = useGameStore()
-  const [hints, setHints] = useState<(HintResult | null)[]>([null, null, null])
-  const [loading, setLoading] = useState(false)
+  const { bestRank, usedHints, incrementUsedHints } = useGameStore();
+  const [hints, setHints] = useState<(HintResult | null)[]>([null, null, null]);
+  const [loading, setLoading] = useState(false);
 
   async function handleHint() {
-    const blockReason = getHintBlockReason(bestRank, usedHints, roundStatus)
+    const blockReason = getHintBlockReason(bestRank, usedHints, roundStatus);
     if (blockReason) {
-      toast.info(getHintBlockMessage(blockReason))
-      return
+      toast.info(getHintBlockMessage(blockReason));
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
     try {
-      const result = await resolveHint(roomId, roundId, bestRank!, usedHints)
+      const result = await resolveHint(roomId, roundId, bestRank!, usedHints);
       if (!result) {
-        toast.info('Không tìm được gợi ý phù hợp.')
-        return
+        toast.info("Không tìm được gợi ý phù hợp.");
+        return;
       }
 
-      const newHints = [...hints]
-      newHints[usedHints] = result
-      setHints(newHints)
+      const newHints = [...hints];
+      newHints[usedHints] = result;
+      setHints(newHints);
 
-      const newUsedHints = usedHints + 1
-      const newPenalty = result.penalty
-      incrementUsedHints()
+      const newUsedHints = usedHints + 1;
+      // Cumulative penalty: sum of all hints used so far (25 → 70 → 140)
+      const cumulativePenalty =
+        hints.slice(0, usedHints).reduce((sum, h) => sum + (h?.penalty ?? 0), 0) + result.penalty;
+      incrementUsedHints();
 
       await updatePlayerRoundAfterHint(roomId, roundId, uid, {
         usedHints: newUsedHints,
-        hintPenalty: newPenalty,
-      })
+        hintPenalty: cumulativePenalty,
+      });
     } catch {
-      toast.error('Lỗi khi lấy gợi ý. Thử lại.')
+      toast.error("Lỗi khi lấy gợi ý. Thử lại.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
-  const blockReason = getHintBlockReason(bestRank, usedHints, roundStatus)
+  const blockReason = getHintBlockReason(bestRank, usedHints, roundStatus);
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/10 p-4">
@@ -86,10 +88,18 @@ export function HintPanel({ roomId, roundId, uid, roundStatus }: Props) {
         disabled={loading || blockReason !== null}
         title={blockReason ? getHintBlockMessage(blockReason) : undefined}
       >
-        {loading
-          ? <><Loader2 size={14} className="mr-2 animate-spin" />Đang tìm…</>
-          : <><Lightbulb size={14} className="mr-2" />Dùng gợi ý ({3 - usedHints} còn)</>}
+        {loading ? (
+          <>
+            <Loader2 size={14} className="mr-2 animate-spin" />
+            Đang tìm…
+          </>
+        ) : (
+          <>
+            <Lightbulb size={14} className="mr-2" />
+            Dùng gợi ý ({3 - usedHints} còn)
+          </>
+        )}
       </Button>
     </div>
-  )
+  );
 }
