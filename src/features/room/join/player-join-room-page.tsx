@@ -35,6 +35,10 @@ export function PlayerJoinRoomPage() {
         toast.error("Phiên chơi đã kết thúc.");
         return;
       }
+      if (room.status === "playing") {
+        toast.error("Game đang chạy, không thể tham gia lúc này.");
+        return;
+      }
 
       const user = await ensureAnonymousUser();
       await joinRoom(ROOM_ID, user.uid, trimmedName);

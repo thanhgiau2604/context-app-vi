@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { ROOM_ID } from "@/lib/firestore/single-room-id-constant";
 import { subscribeToRoom } from "@/lib/firestore/room-firestore-repository";
+import { getRoundKeyword } from "@/lib/firestore/round-firestore-repository";
 import { useRoundSaltLoader } from "@/hooks/use-round-salt-loader";
 import { useGameStore } from "@/stores/game-session-store";
 import { GuessInputForm } from "@/features/gameplay/guess/guess-input-form";
@@ -10,6 +11,7 @@ import { RoundStatusHeaderBar } from "./round-status-header-bar";
 import { HintPanel } from "@/features/gameplay/hint/hint-panel";
 import { SolvedCelebrationOverlay } from "./solved-celebration-overlay";
 import { KeywordRevealCard } from "./keyword-reveal-card";
+import { BetweenRoundsKeywordRevealSummary } from "./between-rounds-keyword-reveal-summary";
 import { finishPlayerRound } from "./round-completion-firestore-service";
 import { usePublicResultsRealtime } from "@/hooks/use-public-results-realtime-listener";
 import { RealtimeRoundResultsBoard } from "@/features/results/public-board/realtime-round-results-board";
@@ -18,8 +20,17 @@ import type { Room } from "@/types/game-firestore-types";
 
 export function GamePageLayout() {
   const navigate = useNavigate();
-  const { uid, playerName, currentRoundId, localGuesses, usedHints, setRound, resetRoundState } =
-    useGameStore();
+  const {
+    uid,
+    playerName,
+    currentRoundId,
+    localGuesses,
+    bestRank,
+    usedHints,
+    setRound,
+    resetRoundState,
+  } = useGameStore();
+
   const [room, setRoom] = useState<Room | null>(null);
   const [startedAtMs] = useState(Date.now());
   const [solved, setSolved] = useState(false);
@@ -27,25 +38,47 @@ export function GamePageLayout() {
   const [showSurrenderConfirm, setShowSurrenderConfirm] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [roundScore, setRoundScore] = useState(0);
+  const [revealedKeyword, setRevealedKeyword] = useState<string | null>(null);
 
-  // Track previous roundId to detect round changes mid-session
+  // Near-miss bonus: track if player reached rank ≤ 50 within first 60s
+  const [firstNearMissWithin60s, setFirstNearMissWithin60s] = useState(false);
+
+  // lastRoundId survives currentRoundId clearing — used for between-rounds summary
+  const [lastRoundId, setLastRoundId] = useState<string | null>(null);
   const prevRoundIdRef = useRef<string | null>(null);
+
+  // Detect near-miss: first time bestRank ≤ 50 within 60s of round start
+  useEffect(() => {
+    if (
+      !firstNearMissWithin60s &&
+      bestRank !== null &&
+      bestRank <= 50 &&
+      Date.now() - startedAtMs <= 60_000
+    ) {
+      setFirstNearMissWithin60s(true);
+    }
+  }, [bestRank, firstNearMissWithin60s, startedAtMs]);
 
   useEffect(() => {
     return subscribeToRoom(ROOM_ID, (r) => {
       setRoom(r);
+
       if (r?.currentRoundId) {
-        // New round started — reset player state
+        // New round started — reset all per-round state
         if (prevRoundIdRef.current && prevRoundIdRef.current !== r.currentRoundId) {
           resetRoundState();
           setSolved(false);
           setSurrendered(false);
           setShowSurrenderConfirm(false);
           setShowCelebration(false);
+          setRevealedKeyword(null);
+          setFirstNearMissWithin60s(false);
         }
         prevRoundIdRef.current = r.currentRoundId;
+        setLastRoundId(r.currentRoundId);
         setRound(r.currentRoundId);
       }
+
       if (r?.status === "waiting") void navigate({ to: "/lobby" });
       if (r?.status === "ended") void navigate({ to: "/podium" });
     });
@@ -53,8 +86,17 @@ export function GamePageLayout() {
 
   const roundId = currentRoundId ?? room?.currentRoundId ?? null;
   const { roundSalt } = useRoundSaltLoader(ROOM_ID, roundId);
-  const publicResults = usePublicResultsRealtime(ROOM_ID, roundId);
+  const publicResults = usePublicResultsRealtime(ROOM_ID, roundId ?? lastRoundId);
   const activePlayers = room ? room.playerCount || publicResults.length : 0;
+
+  async function fetchAndRevealKeyword(rId: string) {
+    try {
+      const kw = await getRoundKeyword(ROOM_ID, rId);
+      setRevealedKeyword(kw);
+    } catch {
+      // keyword stays hidden if fetch fails (e.g. round not yet completed)
+    }
+  }
 
   async function handleSolved() {
     if (!roundId || !uid || !playerName) return;
@@ -72,9 +114,11 @@ export function GamePageLayout() {
         hintPenalty: 0,
         startedAtMs,
         finishOrder: publicResults.length + 1,
+        firstNearMissWithin60s,
       });
       setRoundScore(score);
       setShowCelebration(true);
+      void fetchAndRevealKeyword(roundId);
     } catch (e) {
       console.error("finishPlayerRound error", e);
     }
@@ -84,7 +128,7 @@ export function GamePageLayout() {
     if (!roundId || !uid || !playerName) return;
     setSurrendered(true);
     setShowSurrenderConfirm(false);
-    const bestRank = localGuesses.reduce<number | null>(
+    const surrenderBestRank = localGuesses.reduce<number | null>(
       (min, g) => (g.rank === null ? min : min === null || g.rank < min ? g.rank : min),
       null,
     );
@@ -95,16 +139,26 @@ export function GamePageLayout() {
         uid,
         name: playerName,
         status: "surrendered",
-        bestRank,
+        bestRank: surrenderBestRank,
         guessCount: localGuesses.length,
         usedHints,
         hintPenalty: 0,
         startedAtMs,
         finishOrder: publicResults.length + 1,
+        firstNearMissWithin60s,
       });
+      void fetchAndRevealKeyword(roundId);
     } catch (e) {
       console.error("finishPlayerRound error", e);
     }
+  }
+
+  // Between-rounds: room is playing but no active round — show round summary
+  const isBetweenRounds = room?.status === "playing" && !room.currentRoundId && !!lastRoundId;
+  if (isBetweenRounds) {
+    return (
+      <BetweenRoundsKeywordRevealSummary roundId={lastRoundId!} activePlayers={activePlayers} />
+    );
   }
 
   const isPlaying = !solved && !surrendered;
@@ -122,7 +176,7 @@ export function GamePageLayout() {
     <div className="min-h-screen p-4">
       <SolvedCelebrationOverlay
         visible={showCelebration}
-        keyword="???"
+        keyword={revealedKeyword ?? "???"}
         score={roundScore}
         onDismiss={() => setShowCelebration(false)}
       />
@@ -132,7 +186,7 @@ export function GamePageLayout() {
         {/* Left: gameplay area */}
         <div className="flex flex-col gap-3">
           <RoundStatusHeaderBar
-            roundNumber={room?.currentRoundId ? 1 : 1}
+            roundNumber={1}
             startedAtMs={startedAtMs}
             onHint={() => {}}
             onSurrender={() => setShowSurrenderConfirm(true)}
@@ -149,7 +203,11 @@ export function GamePageLayout() {
               onSolved={handleSolved}
             />
           )}
-          {surrendered && <KeywordRevealCard keyword="(đáp án ẩn cho đến khi round kết thúc)" />}
+          {surrendered && (
+            <KeywordRevealCard
+              keyword={revealedKeyword ?? "(đáp án sẽ hiện khi ván game kết thúc)"}
+            />
+          )}
           {showSurrenderConfirm && isPlaying && (
             <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 flex flex-col gap-3">
               <p className="text-sm font-medium">Bỏ cuộc? Bạn sẽ xếp cuối round này.</p>

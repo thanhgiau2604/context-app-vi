@@ -13,6 +13,7 @@ import {
   limit,
   writeBatch,
   serverTimestamp,
+  deleteField,
 } from "firebase/firestore";
 import { ROOM_ID } from "./single-room-id-constant";
 import type { Room, Player, Round } from "@/types/game-firestore-types";
@@ -40,8 +41,9 @@ export async function openSession(): Promise<void> {
   await updateDoc(doc(db, "rooms", ROOM_ID), { status: "waiting" });
 }
 
-// Starts the game: picks the oldest ready round, sets it as current, transitions to playing.
-// Throws if no ready round exists in the library.
+// Starts (or resumes) the game: picks the oldest ready round, sets it as currentRoundId.
+// Used for both initial "Bắt đầu game" and "Round tiếp" after a round ends.
+// Throws if no ready round exists.
 export async function startGameSession(): Promise<void> {
   const q = query(
     collection(db, "rooms", ROOM_ID, "rounds"),
@@ -50,7 +52,7 @@ export async function startGameSession(): Promise<void> {
     limit(1),
   );
   const snap = await getDocs(q);
-  if (snap.empty) throw new Error("Không có game nào trong kho. Tạo game trước.");
+  if (snap.empty) throw new Error("Không có game nào trong kho. Tạo thêm game.");
 
   const firstRound = snap.docs[0];
   const batch = writeBatch(db);
@@ -62,43 +64,27 @@ export async function startGameSession(): Promise<void> {
   await batch.commit();
 }
 
-// Marks current round completed then starts the next ready round.
-// Returns true if a next round was found, false if library exhausted (caller should end session).
-export async function advanceToNextRound(currentRoundId: string): Promise<boolean> {
-  const q = query(
-    collection(db, "rooms", ROOM_ID, "rounds"),
-    where("status", "==", "ready"),
-    orderBy("createdAt", "asc"),
-    limit(1),
-  );
-  const [, nextSnap] = await Promise.all([
-    updateDoc(doc(db, "rooms", ROOM_ID, "rounds", currentRoundId), { status: "completed" }),
-    getDocs(q),
-  ]);
-
-  if (nextSnap.empty) return false;
-
-  const nextRound = nextSnap.docs[0];
+// Ends the current round: marks it completed and clears currentRoundId.
+// Room stays "playing" — between-rounds summary shown until admin starts next round.
+export async function endCurrentRound(roundId: string): Promise<void> {
   const batch = writeBatch(db);
-  batch.update(doc(db, "rooms", ROOM_ID), { currentRoundId: nextRound.id });
-  batch.update(nextRound.ref, { status: "playing" });
+  batch.update(doc(db, "rooms", ROOM_ID, "rounds", roundId), { status: "completed" });
+  // Remove currentRoundId — triggers between-rounds state for all clients
+  batch.update(doc(db, "rooms", ROOM_ID), { currentRoundId: deleteField() });
   await batch.commit();
-  return true;
 }
 
-// Ends the session: marks current round completed and sets room to ended.
-export async function endSession(currentRoundId: string): Promise<void> {
-  const batch = writeBatch(db);
-  batch.update(doc(db, "rooms", ROOM_ID, "rounds", currentRoundId), { status: "completed" });
-  batch.update(doc(db, "rooms", ROOM_ID), { status: "ended", currentRoundId: null });
-  await batch.commit();
+// Closes the entire session (sets room to ended → triggers podium for all clients).
+// Call after endCurrentRound, or directly when no active round.
+export async function closeSession(): Promise<void> {
+  await updateDoc(doc(db, "rooms", ROOM_ID), { status: "ended" });
 }
 
 // Resets session back to idle so a new session can be started.
 export async function resetSession(): Promise<void> {
   await updateDoc(doc(db, "rooms", ROOM_ID), {
     status: "idle",
-    currentRoundId: null,
+    currentRoundId: deleteField(),
     playerCount: 0,
   });
 }

@@ -15,6 +15,8 @@ type FinishRoundParams = {
   hintPenalty: number;
   startedAtMs: number;
   finishOrder: number;
+  // True if player reached rank ≤ 50 within the first 60s — grants small bonus for surrendered players
+  firstNearMissWithin60s?: boolean;
 };
 
 export async function finishPlayerRound(params: FinishRoundParams): Promise<number> {
@@ -27,6 +29,7 @@ export async function finishPlayerRound(params: FinishRoundParams): Promise<numb
     durationSec,
     guessCount: params.guessCount,
     usedHints: params.usedHints,
+    firstNearMissWithin60s: params.firstNearMissWithin60s,
   });
 
   // Atomic batch: all 3 writes succeed or none do (prevents partial score credit)

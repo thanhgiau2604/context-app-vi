@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   Loader2,
   Plus,
@@ -10,6 +10,8 @@ import {
   SkipForward,
   StopCircle,
   RefreshCw,
+  Gamepad2,
+  Flag,
 } from "lucide-react";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase-app-init";
@@ -18,12 +20,13 @@ import {
   ensureSingleRoom,
   openSession,
   startGameSession,
-  advanceToNextRound,
-  endSession,
+  endCurrentRound,
+  closeSession,
   resetSession,
   subscribeToRoom,
   subscribeToGameLibrary,
 } from "@/lib/firestore/room-firestore-repository";
+import { joinRoom } from "@/lib/firestore/player-firestore-repository";
 import { ROOM_ID } from "@/lib/firestore/single-room-id-constant";
 import { useGameStore } from "@/stores/game-session-store";
 import { CreateGameModalDialog } from "@/features/admin/create-game/create-game-modal-dialog";
@@ -71,6 +74,7 @@ function RoundStatusBadge({ status }: { status: Round["status"] }) {
 }
 
 export function AdminPanelPage() {
+  const navigate = useNavigate();
   const { setPlayer, uid } = useGameStore();
   const [room, setRoom] = useState<Room | null>(null);
   const [library, setLibrary] = useState<Round[]>([]);
@@ -112,9 +116,22 @@ export function AdminPanelPage() {
     setShowCreateGame(false);
   }
 
+  async function handlePlayAlong() {
+    if (!uid) return;
+    try {
+      // Register admin as a player so score tracking works
+      await joinRoom(ROOM_ID, uid, "Admin");
+      void navigate({ to: "/game" });
+    } catch {
+      toast.error("Không thể vào chơi.");
+    }
+  }
+
   const status = room?.status ?? "idle";
   const currentRoundId = room?.currentRoundId;
   const readyCount = library.filter((r) => r.status === "ready").length;
+  // Between rounds: playing but no active currentRoundId
+  const isBetweenRounds = status === "playing" && !currentRoundId;
 
   return (
     <>
@@ -133,6 +150,7 @@ export function AdminPanelPage() {
         <CardContent className="flex flex-col gap-4">
           {/* Session lifecycle controls */}
           <div className="flex flex-wrap gap-2">
+            {/* idle → open lobby */}
             {status === "idle" && (
               <Button
                 onClick={() => run(openSession, "Không mở được phòng")}
@@ -144,6 +162,8 @@ export function AdminPanelPage() {
                 {readyCount === 0 && <span className="ml-2 text-xs opacity-60">(cần game)</span>}
               </Button>
             )}
+
+            {/* waiting → start game */}
             {status === "waiting" && (
               <Button onClick={() => run(startGameSession, "Không bắt đầu được")} disabled={busy}>
                 {busy ? (
@@ -154,35 +174,68 @@ export function AdminPanelPage() {
                 Bắt đầu game
               </Button>
             )}
+
+            {/* playing + active round → end round OR end entire session */}
             {status === "playing" && currentRoundId && (
               <>
                 <Button
                   variant="secondary"
                   onClick={() =>
-                    run(async () => {
-                      const hasNext = await advanceToNextRound(currentRoundId);
-                      if (!hasNext) toast.info("Hết game trong kho. Kết thúc phiên.");
-                    }, "Không chuyển được round")
+                    run(() => endCurrentRound(currentRoundId), "Không kết thúc được ván game")
                   }
                   disabled={busy}
                 >
                   {busy ? (
-                    <Loader2 size={16} className="animate-spin" />
+                    <Loader2 size={16} className="animate-spin mr-2" />
+                  ) : (
+                    <Flag size={16} className="mr-2" />
+                  )}
+                  Kết thúc ván game
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() =>
+                    run(async () => {
+                      await endCurrentRound(currentRoundId);
+                      await closeSession();
+                    }, "Không kết thúc được game")
+                  }
+                  disabled={busy}
+                >
+                  <StopCircle size={16} className="mr-2" />
+                  Kết thúc game
+                </Button>
+              </>
+            )}
+
+            {/* between rounds → start next OR end session */}
+            {isBetweenRounds && (
+              <>
+                <Button
+                  onClick={() => run(startGameSession, "Không bắt đầu được round mới")}
+                  disabled={busy || readyCount === 0}
+                  title={readyCount === 0 ? "Hết game trong kho" : undefined}
+                >
+                  {busy ? (
+                    <Loader2 size={16} className="animate-spin mr-2" />
                   ) : (
                     <SkipForward size={16} className="mr-2" />
                   )}
                   Round tiếp
+                  {readyCount === 0 && <span className="ml-2 text-xs opacity-60">(hết game)</span>}
                 </Button>
                 <Button
                   variant="destructive"
-                  onClick={() => run(() => endSession(currentRoundId), "Không kết thúc được")}
+                  onClick={() => run(closeSession, "Không kết thúc được game")}
                   disabled={busy}
                 >
                   <StopCircle size={16} className="mr-2" />
-                  Kết thúc
+                  Kết thúc game
                 </Button>
               </>
             )}
+
+            {/* ended → reset to idle */}
             {status === "ended" && (
               <Button
                 variant="outline"
@@ -191,6 +244,14 @@ export function AdminPanelPage() {
               >
                 <RefreshCw size={16} className="mr-2" />
                 Chơi lại
+              </Button>
+            )}
+
+            {/* Admin play-along — available during active round */}
+            {status === "playing" && currentRoundId && (
+              <Button variant="outline" onClick={handlePlayAlong}>
+                <Gamepad2 size={16} className="mr-2" />
+                Vào chơi
               </Button>
             )}
           </div>

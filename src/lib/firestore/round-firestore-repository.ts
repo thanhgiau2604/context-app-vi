@@ -79,6 +79,12 @@ export async function updateRoundStatus(roomId: string, roundId: string, status:
   await updateDoc(doc(db, "rooms", roomId, "rounds", roundId), { status });
 }
 
+// Reads keyword from private/secret — readable after player finishes or round is completed.
+export async function getRoundKeyword(roomId: string, roundId: string): Promise<string | null> {
+  const snap = await getDoc(doc(db, "rooms", roomId, "rounds", roundId, "private", "secret"));
+  return snap.exists() ? (snap.data() as { keyword: string }).keyword : null;
+}
+
 function chunkArray<T>(arr: T[], size: number): T[][] {
   const chunks: T[][] = [];
   for (let i = 0; i < arr.length; i += size) chunks.push(arr.slice(i, i + size));

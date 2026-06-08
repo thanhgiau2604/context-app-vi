@@ -1,4 +1,7 @@
-// Scoring formula from design doc (brainstorm section 9)
+// Scoring formula:
+// base (by bestRank) + solvedBonus + speedBonus + nearMissBonus
+//   - guessPenalty - hintPenalty - surrenderPenalty
+
 const HINT_PENALTIES = [25, 45, 70];
 
 function getBaseScore(bestRank: number | null): number {
@@ -9,12 +12,13 @@ function getBaseScore(bestRank: number | null): number {
   if (bestRank <= 50) return 250;
   if (bestRank <= 100) return 120;
   if (bestRank <= 300) return 40;
-  if (bestRank <= 1000) return 10;
+  if (bestRank <= 500) return 10;
   return 0;
 }
 
 function getSpeedBonus(status: "solved" | "surrendered", durationSec: number): number {
   if (status !== "solved") return 0;
+  // Up to +200 pts, decreases by 1.5 pts/sec — gone after ~2 min 13s
   return Math.max(0, 200 - Math.floor(durationSec * 1.5));
 }
 
@@ -24,10 +28,14 @@ export function calculateRoundScore(params: {
   durationSec: number;
   guessCount: number;
   usedHints: number;
+  // Small +50 bonus when first near-miss (rank ≤ 50) achieved within 60s — only for non-solved
+  firstNearMissWithin60s?: boolean;
 }): number {
   const base = getBaseScore(params.bestRank);
   const solvedBonus = params.status === "solved" ? 300 : 0;
   const speedBonus = getSpeedBonus(params.status, params.durationSec);
+  // Near-miss bonus only meaningful for surrendered players (solved already earns full base+bonus)
+  const nearMissBonus = params.firstNearMissWithin60s && params.status !== "solved" ? 50 : 0;
   const guessPenalty = Math.min(params.guessCount * 3, 120);
   const hintPenalty = Array.from(
     { length: params.usedHints },
@@ -37,6 +45,6 @@ export function calculateRoundScore(params: {
 
   return Math.max(
     0,
-    base + solvedBonus + speedBonus - guessPenalty - hintPenalty - surrenderPenalty,
+    base + solvedBonus + speedBonus + nearMissBonus - guessPenalty - hintPenalty - surrenderPenalty,
   );
 }
