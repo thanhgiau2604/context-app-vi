@@ -180,7 +180,11 @@ export function GamePageLayout() {
   const isBetweenRounds = room?.status === "playing" && !room.currentRoundId && !!lastRoundId;
   if (isBetweenRounds) {
     return (
-      <BetweenRoundsKeywordRevealSummary roundId={lastRoundId!} activePlayers={activePlayers} />
+      <BetweenRoundsKeywordRevealSummary
+        roundId={lastRoundId!}
+        activePlayers={activePlayers}
+        isAdmin={isAdmin}
+      />
     );
   }
 
