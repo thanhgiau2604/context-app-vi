@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { ROOM_ID } from "@/lib/firestore/single-room-id-constant";
-import { subscribeToRoom } from "@/lib/firestore/room-firestore-repository";
+import { subscribeToRoom, endCurrentRound } from "@/lib/firestore/room-firestore-repository";
 import { getRoundKeyword } from "@/lib/firestore/round-firestore-repository";
 import { useRoundSaltLoader } from "@/hooks/use-round-salt-loader";
 import { useGameStore } from "@/stores/game-session-store";
@@ -12,6 +12,7 @@ import { HintPanel } from "@/features/gameplay/hint/hint-panel";
 import { SolvedCelebrationOverlay } from "./solved-celebration-overlay";
 import { KeywordRevealCard } from "./keyword-reveal-card";
 import { BetweenRoundsKeywordRevealSummary } from "./between-rounds-keyword-reveal-summary";
+import { AdminInGameControlBar } from "@/features/admin/panel/admin-in-game-control-bar";
 import { finishPlayerRound } from "./round-completion-firestore-service";
 import { usePublicResultsRealtime } from "@/hooks/use-public-results-realtime-listener";
 import { RealtimeRoundResultsBoard } from "@/features/results/public-board/realtime-round-results-board";
@@ -23,6 +24,7 @@ export function GamePageLayout() {
   const {
     uid,
     playerName,
+    isAdmin,
     currentRoundId,
     localGuesses,
     bestRank,
@@ -32,7 +34,8 @@ export function GamePageLayout() {
   } = useGameStore();
 
   const [room, setRoom] = useState<Room | null>(null);
-  const [startedAtMs] = useState(Date.now());
+  // startedAtMs resets each round so timer and score calc stay accurate
+  const [startedAtMs, setStartedAtMs] = useState(Date.now());
   const [solved, setSolved] = useState(false);
   const [surrendered, setSurrendered] = useState(false);
   const [showSurrenderConfirm, setShowSurrenderConfirm] = useState(false);
@@ -40,14 +43,16 @@ export function GamePageLayout() {
   const [roundScore, setRoundScore] = useState(0);
   const [revealedKeyword, setRevealedKeyword] = useState<string | null>(null);
 
-  // Near-miss bonus: track if player reached rank ≤ 50 within first 60s
+  // Near-miss bonus: first time bestRank ≤ 50 within first 60s
   const [firstNearMissWithin60s, setFirstNearMissWithin60s] = useState(false);
 
   // lastRoundId survives currentRoundId clearing — used for between-rounds summary
   const [lastRoundId, setLastRoundId] = useState<string | null>(null);
   const prevRoundIdRef = useRef<string | null>(null);
+  // Prevent double-trigger of auto-end per round
+  const autoEndedRoundRef = useRef<string | null>(null);
 
-  // Detect near-miss: first time bestRank ≤ 50 within 60s of round start
+  // Detect near-miss: bestRank ≤ 50 within 60s of round start
   useEffect(() => {
     if (
       !firstNearMissWithin60s &&
@@ -64,7 +69,7 @@ export function GamePageLayout() {
       setRoom(r);
 
       if (r?.currentRoundId) {
-        // New round started — reset all per-round state
+        // New round — reset all per-round state
         if (prevRoundIdRef.current && prevRoundIdRef.current !== r.currentRoundId) {
           resetRoundState();
           setSolved(false);
@@ -73,6 +78,7 @@ export function GamePageLayout() {
           setShowCelebration(false);
           setRevealedKeyword(null);
           setFirstNearMissWithin60s(false);
+          setStartedAtMs(Date.now());
         }
         prevRoundIdRef.current = r.currentRoundId;
         setLastRoundId(r.currentRoundId);
@@ -87,14 +93,28 @@ export function GamePageLayout() {
   const roundId = currentRoundId ?? room?.currentRoundId ?? null;
   const { roundSalt } = useRoundSaltLoader(ROOM_ID, roundId);
   const publicResults = usePublicResultsRealtime(ROOM_ID, roundId ?? lastRoundId);
-  const activePlayers = room ? room.playerCount || publicResults.length : 0;
+  const activePlayers = room?.playerCount ?? 0;
+
+  // Admin auto-end: when all registered players have submitted results
+  useEffect(() => {
+    if (
+      isAdmin &&
+      roundId &&
+      activePlayers > 0 &&
+      publicResults.length >= activePlayers &&
+      autoEndedRoundRef.current !== roundId
+    ) {
+      autoEndedRoundRef.current = roundId;
+      endCurrentRound(roundId).catch(console.error);
+    }
+  }, [isAdmin, roundId, activePlayers, publicResults.length]);
 
   async function fetchAndRevealKeyword(rId: string) {
     try {
       const kw = await getRoundKeyword(ROOM_ID, rId);
       setRevealedKeyword(kw);
     } catch {
-      // keyword stays hidden if fetch fails (e.g. round not yet completed)
+      // stays hidden if fetch fails
     }
   }
 
@@ -121,6 +141,8 @@ export function GamePageLayout() {
       void fetchAndRevealKeyword(roundId);
     } catch (e) {
       console.error("finishPlayerRound error", e);
+      // Revert solved so player can retry
+      setSolved(false);
     }
   }
 
@@ -150,10 +172,11 @@ export function GamePageLayout() {
       void fetchAndRevealKeyword(roundId);
     } catch (e) {
       console.error("finishPlayerRound error", e);
+      setSurrendered(false);
     }
   }
 
-  // Between-rounds: room is playing but no active round — show round summary
+  // Between-rounds: room playing but no active round → show round summary
   const isBetweenRounds = room?.status === "playing" && !room.currentRoundId && !!lastRoundId;
   if (isBetweenRounds) {
     return (
@@ -181,10 +204,12 @@ export function GamePageLayout() {
         onDismiss={() => setShowCelebration(false)}
       />
 
-      {/* Responsive: single col mobile, two col desktop */}
       <div className="grid grid-cols-1 md:grid-cols-[3fr_2fr] gap-4 max-w-5xl mx-auto">
-        {/* Left: gameplay area */}
+        {/* Left: gameplay */}
         <div className="flex flex-col gap-3">
+          {/* Admin controls strip — only visible to admin */}
+          {isAdmin && <AdminInGameControlBar roundId={roundId} />}
+
           <RoundStatusHeaderBar
             roundNumber={1}
             startedAtMs={startedAtMs}
@@ -231,7 +256,7 @@ export function GamePageLayout() {
           <GuessHistorySortedList />
         </div>
 
-        {/* Right: results + leaderboard (desktop only) */}
+        {/* Right: results + leaderboard (desktop) */}
         <div className="hidden md:flex flex-col gap-3">
           <RealtimeRoundResultsBoard
             roomId={ROOM_ID}

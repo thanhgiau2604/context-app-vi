@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   Loader2,
@@ -26,6 +26,7 @@ import {
   subscribeToRoom,
   subscribeToGameLibrary,
 } from "@/lib/firestore/room-firestore-repository";
+import { subscribeToPublicResults } from "@/hooks/use-public-results-realtime-listener";
 import { joinRoom } from "@/lib/firestore/player-firestore-repository";
 import { ROOM_ID } from "@/lib/firestore/single-room-id-constant";
 import { useGameStore } from "@/stores/game-session-store";
@@ -80,6 +81,8 @@ export function AdminPanelPage() {
   const [library, setLibrary] = useState<Round[]>([]);
   const [showCreateGame, setShowCreateGame] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Prevent double auto-end per round
+  const autoEndedRoundRef = useRef<string | null>(null);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -94,6 +97,19 @@ export function AdminPanelPage() {
       unsub2();
     };
   }, [setPlayer]);
+
+  // Auto-end round when all registered players submit results
+  useEffect(() => {
+    const rId = room?.currentRoundId;
+    const playerCount = room?.playerCount ?? 0;
+    if (!rId || room?.status !== "playing" || playerCount === 0) return;
+    return subscribeToPublicResults(ROOM_ID, rId, (results) => {
+      if (results.length >= playerCount && autoEndedRoundRef.current !== rId) {
+        autoEndedRoundRef.current = rId;
+        endCurrentRound(rId).catch(console.error);
+      }
+    });
+  }, [room?.currentRoundId, room?.status, room?.playerCount]);
 
   async function run(fn: () => Promise<void>, errMsg: string) {
     setBusy(true);
@@ -153,7 +169,12 @@ export function AdminPanelPage() {
             {/* idle → open lobby */}
             {status === "idle" && (
               <Button
-                onClick={() => run(openSession, "Không mở được phòng")}
+                onClick={() =>
+                  run(async () => {
+                    await openSession();
+                    void navigate({ to: "/lobby" });
+                  }, "Không mở được phòng")
+                }
                 disabled={busy || readyCount === 0}
                 title={readyCount === 0 ? "Cần ít nhất 1 game trong kho" : undefined}
               >

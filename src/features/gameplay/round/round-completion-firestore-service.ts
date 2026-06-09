@@ -1,5 +1,5 @@
 import { db } from "@/lib/firebase-app-init";
-import { doc, writeBatch, serverTimestamp, increment } from "firebase/firestore";
+import { doc, writeBatch, serverTimestamp, increment, Timestamp } from "firebase/firestore";
 import { calculateRoundScore } from "@/lib/utils/round-score-calculator";
 import type { PublicRoundResult } from "@/types/game-firestore-types";
 
@@ -35,14 +35,18 @@ export async function finishPlayerRound(params: FinishRoundParams): Promise<numb
   // Atomic batch: all 3 writes succeed or none do (prevents partial score credit)
   const batch = writeBatch(db);
 
-  batch.update(
-    doc(db, "rooms", params.roomId, "rounds", params.roundId, "playerRounds", params.uid),
-    {
-      status: params.status,
-      finishedAt: serverTimestamp(),
-      roundScore,
-    },
-  );
+  // Use set (not update) — playerRounds doc is created here for the first time
+  batch.set(doc(db, "rooms", params.roomId, "rounds", params.roundId, "playerRounds", params.uid), {
+    uid: params.uid,
+    status: params.status,
+    startedAt: Timestamp.fromMillis(params.startedAtMs),
+    finishedAt: serverTimestamp(),
+    guessCount: params.guessCount,
+    bestRank: params.bestRank,
+    usedHints: params.usedHints,
+    hintPenalty: params.hintPenalty,
+    roundScore,
+  });
 
   const publicResult: Omit<PublicRoundResult, "createdAt"> & { createdAt: unknown } = {
     uid: params.uid,
