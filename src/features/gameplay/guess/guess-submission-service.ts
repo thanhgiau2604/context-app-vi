@@ -33,6 +33,6 @@ export async function submitGuess(
     rank: result?.rank ?? null,
     type: result?.type ?? null,
     notFound: result === null,
-    localGuess: { ...baseGuess, rank: result?.rank ?? null },
+    localGuess: { ...baseGuess, rank: result?.rank ?? null, notFound: result === null },
   };
 }

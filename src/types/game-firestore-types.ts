@@ -86,4 +86,6 @@ export type LocalGuess = {
   normalizedText: string;
   rank: number | null;
   createdAt: number;
+  // true when word not found in round's 500-word corpus — shown as "quá xa" in history
+  notFound?: boolean;
 };

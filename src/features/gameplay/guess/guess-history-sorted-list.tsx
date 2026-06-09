@@ -19,7 +19,8 @@ export function GuessHistorySortedList() {
     <div className="flex flex-col gap-1.5 overflow-y-auto">
       <AnimatePresence initial={false}>
         {sorted.map((guess) => {
-          const tier = getRankTier(guess.rank);
+          // notFound words render with "far" tier styling; ranked words use their tier
+          const tier = guess.notFound ? "far" : getRankTier(guess.rank);
           return (
             <motion.div
               key={guess.createdAt}
@@ -32,7 +33,7 @@ export function GuessHistorySortedList() {
                 rankTierColorClass[tier],
               )}
             >
-              <RankBadge rank={guess.rank} size="sm" />
+              <RankBadge rank={guess.rank} notFound={guess.notFound} size="sm" />
               <span className="flex-1 font-medium">{guess.text}</span>
             </motion.div>
           );

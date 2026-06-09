@@ -1,10 +1,12 @@
 import { getRankTier, rankTierColorClass } from "@/lib/utils/rank-tier-color-classifier";
 import { cn } from "@/lib/tailwind-class-merge-utils";
 
-type Props = { rank: number | null; size?: "sm" | "md" | "lg" };
+type Props = { rank: number | null; size?: "sm" | "md" | "lg"; notFound?: boolean };
 
-export function RankBadge({ rank, size = "md" }: Props) {
-  const tier = getRankTier(rank);
+export function RankBadge({ rank, size = "md", notFound }: Props) {
+  // notFound words use "far" tier styling — visually distinct from unknown ("???")
+  const tier = notFound ? "far" : getRankTier(rank);
+  const label = notFound ? "quá xa" : rank === null ? "???" : `#${rank}`;
   return (
     <span
       className={cn(
@@ -15,7 +17,7 @@ export function RankBadge({ rank, size = "md" }: Props) {
         rankTierColorClass[tier],
       )}
     >
-      {rank === null ? "???" : `#${rank}`}
+      {label}
     </span>
   );
 }

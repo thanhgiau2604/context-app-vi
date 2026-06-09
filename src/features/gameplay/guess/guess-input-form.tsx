@@ -30,12 +30,7 @@ export function GuessInputForm({ roundSalt, roomId, roundId, disabled, onSolved 
     try {
       const result = await submitGuess(trimmed, roundSalt, roomId, roundId);
 
-      if (result.notFound) {
-        await controls.start({ x: [-5, 5, -4, 4, -2, 0], transition: { duration: 0.35 } });
-        toast.info("Từ này chưa có trong dữ liệu round.");
-        return;
-      }
-
+      // Add to history regardless of notFound — "quá xa" words still appear in the list
       addLocalGuess(result.localGuess);
       if (result.rank !== null) updateBestRank(result.rank);
       if (result.rank === 1) onSolved?.();
