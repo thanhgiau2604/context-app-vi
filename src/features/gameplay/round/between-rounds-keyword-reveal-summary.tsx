@@ -24,7 +24,9 @@ type Props = {
  */
 export function BetweenRoundsKeywordRevealSummary({ roundId, activePlayers, isAdmin }: Props) {
   const [keyword, setKeyword] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  // Track each button's busy state independently so spinners render on the correct button
+  const [busyNext, setBusyNext] = useState(false);
+  const [busyEnd, setBusyEnd] = useState(false);
 
   useEffect(() => {
     // Round is completed — Firestore rules allow read for all signed-in users
@@ -33,16 +35,29 @@ export function BetweenRoundsKeywordRevealSummary({ roundId, activePlayers, isAd
       .catch(() => {});
   }, [roundId]);
 
-  async function run(fn: () => Promise<void>, errMsg: string) {
-    setBusy(true);
+  async function runNext(fn: () => Promise<void>, errMsg: string) {
+    setBusyNext(true);
     try {
       await fn();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : errMsg);
     } finally {
-      setBusy(false);
+      setBusyNext(false);
     }
   }
+
+  async function runEnd(fn: () => Promise<void>, errMsg: string) {
+    setBusyEnd(true);
+    try {
+      await fn();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : errMsg);
+    } finally {
+      setBusyEnd(false);
+    }
+  }
+
+  const anyBusy = busyNext || busyEnd;
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 p-4">
@@ -66,14 +81,17 @@ export function BetweenRoundsKeywordRevealSummary({ roundId, activePlayers, isAd
           />
 
           {isAdmin ? (
-            /* Admin controls: start next round or end entire session */
+            /* Admin controls: start next round or end entire session.
+               NOTE: closeSession() is called without endCurrentRound() here because
+               the round is already completed (currentRoundId was cleared to reach this screen).
+               AdminInGameControlBar calls both because it operates during an active round. */
             <div className="flex gap-2 pt-1">
               <Button
                 className="flex-1"
-                onClick={() => run(startGameSession, "Không bắt đầu được round mới")}
-                disabled={busy}
+                onClick={() => runNext(startGameSession, "Không bắt đầu được round mới")}
+                disabled={anyBusy}
               >
-                {busy ? (
+                {busyNext ? (
                   <Loader2 size={16} className="mr-2 animate-spin" />
                 ) : (
                   <SkipForward size={16} className="mr-2" />
@@ -82,10 +100,14 @@ export function BetweenRoundsKeywordRevealSummary({ roundId, activePlayers, isAd
               </Button>
               <Button
                 variant="destructive"
-                onClick={() => run(closeSession, "Không kết thúc được game")}
-                disabled={busy}
+                onClick={() => runEnd(closeSession, "Không kết thúc được game")}
+                disabled={anyBusy}
               >
-                <StopCircle size={16} className="mr-1" />
+                {busyEnd ? (
+                  <Loader2 size={16} className="mr-1 animate-spin" />
+                ) : (
+                  <StopCircle size={16} className="mr-1" />
+                )}
                 Kết thúc game
               </Button>
             </div>
