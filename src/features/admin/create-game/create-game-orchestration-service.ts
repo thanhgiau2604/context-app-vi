@@ -1,19 +1,15 @@
+import { nanoid } from "nanoid";
 import { generateRoundWithGemini } from "@/lib/gemini/gemini-round-generation-service";
 import { normalizeVietnamese } from "@/lib/utils/normalize-vietnamese-text";
 import { hashTerm } from "@/lib/utils/sha256-term-hash";
-import { buildHintPool } from "@/lib/utils/hint-pool-spread-builder";
 import {
   createRound,
-  getRoundSalt,
-  writeTermIndex,
-  writeHintPool,
-  writeRoundSecret,
   updateRoundStatus,
-} from "@/lib/firestore/round-firestore-repository";
+} from "@/lib/firestore/round-with-embedded-terms-firestore-repository";
 import type { GeneratedRound } from "@/lib/gemini/generated-round-zod-schema";
+import type { RoundTerm } from "@/types/game-firestore-types";
 
 type CreateGameInput = {
-  roomId: string;
   adminUid: string;
   apiKey: string;
   model: string;
@@ -53,30 +49,32 @@ export async function createGame(
   }
 
   onProgress({ step: "hashing", message: "Đang xử lý và hash dữ liệu…" });
-  const roundId = await createRound(input.roomId, input.adminUid);
-  const roundSalt = await getRoundSalt(input.roomId, roundId);
 
+  const roundSalt = nanoid(16);
   const normalizedKeyword = normalizeVietnamese(generated.keyword);
   const keywordHash = await hashTerm(roundSalt, normalizedKeyword);
 
-  const termEntries: Array<{ hash: string; rank: number; type: "keyword" | "related" }> = [
-    { hash: keywordHash, rank: 1, type: "keyword" },
-  ];
-
-  for (const t of generated.relatedTerms) {
-    const normalized = normalizeVietnamese(t.term);
-    const hash = await hashTerm(roundSalt, normalized);
-    termEntries.push({ hash, rank: t.rank, type: "related" });
-  }
-
-  const hintPool = buildHintPool(generated.relatedTerms);
+  // Build terms array with normalized field for client-side lookup
+  const terms: RoundTerm[] = await Promise.all(
+    generated.relatedTerms.map(async (t) => ({
+      term: t.term,
+      normalized: normalizeVietnamese(t.term),
+      rank: t.rank,
+    })),
+  );
 
   onProgress({ step: "writing", message: "Đang lưu vào database…" });
-  await writeTermIndex(input.roomId, roundId, termEntries);
-  await writeHintPool(input.roomId, roundId, hintPool);
-  await writeRoundSecret(input.roomId, roundId, { keyword: generated.keyword, normalizedKeyword });
-  // Mark round ready — it enters the game library; session lifecycle is managed by admin panel
-  await updateRoundStatus(input.roomId, roundId, "ready");
+
+  const roundId = await createRound({
+    adminUid: input.adminUid,
+    roundSalt,
+    keywordHash,
+    terms,
+    keyword: generated.keyword,
+    normalizedKeyword,
+  });
+
+  await updateRoundStatus(roundId, "ready");
 
   onProgress({ step: "done", message: "Round đã sẵn sàng!" });
 

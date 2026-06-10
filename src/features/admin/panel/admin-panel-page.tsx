@@ -17,34 +17,35 @@ import { toast } from "sonner";
 import { auth } from "@/lib/firebase-app-init";
 import { signOutAdmin } from "@/lib/firebase-email-password-auth-service";
 import {
-  ensureSingleRoom,
+  ensureGameState,
   openSession,
   startGameSession,
   endCurrentRound,
   closeSession,
   resetSession,
-  subscribeToRoom,
+  subscribeToGameState,
   subscribeToGameLibrary,
-} from "@/lib/firestore/room-firestore-repository";
+} from "@/lib/firestore/game-state-singleton-firestore-repository";
 import { subscribeToPublicResults } from "@/hooks/use-public-results-realtime-listener";
-import { joinRoom } from "@/lib/firestore/player-firestore-repository";
-import { ROOM_ID } from "@/lib/firestore/single-room-id-constant";
+import { joinGame } from "@/lib/firestore/top-level-player-firestore-repository";
 import { useGameStore } from "@/stores/game-session-store";
 import { CreateGameModalDialog } from "@/features/admin/create-game/create-game-modal-dialog";
-import type { CreateGameResult } from "@/features/admin/create-game/create-game-orchestration-service";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { Room, Round } from "@/types/game-firestore-types";
+import type { GameState, Round } from "@/types/game-firestore-types";
 
-function RoomStatusBadge({ status }: { status: Room["status"] }) {
-  const variantMap: Record<Room["status"], "secondary" | "outline" | "default" | "destructive"> = {
+function GameStatusBadge({ status }: { status: GameState["status"] }) {
+  const variantMap: Record<
+    GameState["status"],
+    "secondary" | "outline" | "default" | "destructive"
+  > = {
     idle: "secondary",
     waiting: "outline",
     playing: "default",
     ended: "destructive",
   };
-  const labels: Record<Room["status"], string> = {
+  const labels: Record<GameState["status"], string> = {
     idle: "Chờ",
     waiting: "Mở phòng",
     playing: "Đang chơi",
@@ -77,21 +78,20 @@ function RoundStatusBadge({ status }: { status: Round["status"] }) {
 export function AdminPanelPage() {
   const navigate = useNavigate();
   const { setPlayer, uid } = useGameStore();
-  const [room, setRoom] = useState<Room | null>(null);
+  const [gameState, setGameState] = useState<GameState | null>(null);
   const [library, setLibrary] = useState<Round[]>([]);
   const [showCreateGame, setShowCreateGame] = useState(false);
   const [busy, setBusy] = useState(false);
-  // Prevent double auto-end per round
   const autoEndedRoundRef = useRef<string | null>(null);
 
   useEffect(() => {
     const user = auth.currentUser;
     if (user) {
       setPlayer(user.uid, "Admin", true);
-      void ensureSingleRoom(user.uid);
+      void ensureGameState(user.uid);
     }
-    const unsub1 = subscribeToRoom(ROOM_ID, setRoom);
-    const unsub2 = subscribeToGameLibrary(ROOM_ID, setLibrary);
+    const unsub1 = subscribeToGameState(setGameState);
+    const unsub2 = subscribeToGameLibrary(setLibrary);
     return () => {
       unsub1();
       unsub2();
@@ -100,16 +100,16 @@ export function AdminPanelPage() {
 
   // Auto-end round when all registered players submit results
   useEffect(() => {
-    const rId = room?.currentRoundId;
-    const playerCount = room?.playerCount ?? 0;
-    if (!rId || room?.status !== "playing" || playerCount === 0) return;
-    return subscribeToPublicResults(ROOM_ID, rId, (results) => {
+    const rId = gameState?.currentRoundId;
+    const playerCount = gameState?.playerCount ?? 0;
+    if (!rId || gameState?.status !== "playing" || playerCount === 0) return;
+    return subscribeToPublicResults(rId, (results) => {
       if (results.length >= playerCount && autoEndedRoundRef.current !== rId) {
         autoEndedRoundRef.current = rId;
         endCurrentRound(rId).catch(console.error);
       }
     });
-  }, [room?.currentRoundId, room?.status, room?.playerCount]);
+  }, [gameState?.currentRoundId, gameState?.status, gameState?.playerCount]);
 
   async function run(fn: () => Promise<void>, errMsg: string) {
     setBusy(true);
@@ -122,31 +122,19 @@ export function AdminPanelPage() {
     }
   }
 
-  async function handleSignOut() {
-    await signOutAdmin();
-    toast.info("Đã đăng xuất.");
-  }
-
-  function handleGameCreated(result: CreateGameResult) {
-    toast.success(`Game tạo xong! Keyword: ${result.keyword}`);
-    setShowCreateGame(false);
-  }
-
   async function handlePlayAlong() {
     if (!uid) return;
     try {
-      // Register admin as a player so score tracking works
-      await joinRoom(ROOM_ID, uid, "Admin");
+      await joinGame(uid, "Admin");
       void navigate({ to: "/game" });
     } catch {
       toast.error("Không thể vào chơi.");
     }
   }
 
-  const status = room?.status ?? "idle";
-  const currentRoundId = room?.currentRoundId;
+  const status = gameState?.status ?? "idle";
+  const currentRoundId = gameState?.currentRoundId;
   const readyCount = library.filter((r) => r.status === "ready").length;
-  // Between rounds: playing but no active currentRoundId
   const isBetweenRounds = status === "playing" && !currentRoundId;
 
   return (
@@ -156,17 +144,23 @@ export function AdminPanelPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <CardTitle className="text-gradient-brand">Admin Dashboard</CardTitle>
-              {room && <RoomStatusBadge status={status} />}
+              {gameState && <GameStatusBadge status={status} />}
             </div>
-            <Button size="icon" variant="ghost" onClick={handleSignOut} title="Đăng xuất">
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => {
+                void signOutAdmin();
+                toast.info("Đã đăng xuất.");
+              }}
+              title="Đăng xuất"
+            >
               <LogOut size={16} />
             </Button>
           </div>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          {/* Session lifecycle controls */}
           <div className="flex flex-wrap gap-2">
-            {/* idle → open lobby */}
             {status === "idle" && (
               <Button
                 onClick={() =>
@@ -184,7 +178,6 @@ export function AdminPanelPage() {
               </Button>
             )}
 
-            {/* waiting → start game */}
             {status === "waiting" && (
               <Button onClick={() => run(startGameSession, "Không bắt đầu được")} disabled={busy}>
                 {busy ? (
@@ -196,7 +189,6 @@ export function AdminPanelPage() {
               </Button>
             )}
 
-            {/* playing + active round → end round OR end entire session */}
             {status === "playing" && currentRoundId && (
               <>
                 <Button
@@ -229,7 +221,6 @@ export function AdminPanelPage() {
               </>
             )}
 
-            {/* between rounds → start next OR end session */}
             {isBetweenRounds && (
               <>
                 <Button
@@ -256,7 +247,6 @@ export function AdminPanelPage() {
               </>
             )}
 
-            {/* ended → reset to idle */}
             {status === "ended" && (
               <Button
                 variant="outline"
@@ -268,7 +258,6 @@ export function AdminPanelPage() {
               </Button>
             )}
 
-            {/* Admin play-along — available during active round */}
             {status === "playing" && currentRoundId && (
               <Button variant="outline" onClick={handlePlayAlong}>
                 <Gamepad2 size={16} className="mr-2" />
@@ -277,7 +266,6 @@ export function AdminPanelPage() {
             )}
           </div>
 
-          {/* Create game + settings */}
           <div className="flex gap-2">
             <Button variant="secondary" onClick={() => setShowCreateGame(true)} className="flex-1">
               <Plus size={16} className="mr-2" />
@@ -290,7 +278,6 @@ export function AdminPanelPage() {
             </Button>
           </div>
 
-          {/* Game library */}
           {library.length > 0 ? (
             <div className="flex flex-col gap-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -323,9 +310,11 @@ export function AdminPanelPage() {
         <CreateGameModalDialog
           open={showCreateGame}
           onOpenChange={setShowCreateGame}
-          roomId={ROOM_ID}
           adminUid={uid}
-          onDone={handleGameCreated}
+          onDone={(result) => {
+            toast.success(`Game tạo xong! Keyword: ${result.keyword}`);
+            setShowCreateGame(false);
+          }}
         />
       )}
     </>

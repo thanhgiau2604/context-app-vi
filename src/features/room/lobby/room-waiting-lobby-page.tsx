@@ -3,31 +3,28 @@ import { useNavigate } from "@tanstack/react-router";
 import { Loader2, Play, Users } from "lucide-react";
 import { toast } from "sonner";
 import {
-  subscribeToRoom,
-  subscribeToPlayers,
+  subscribeToGameState,
   startGameSession,
-} from "@/lib/firestore/room-firestore-repository";
-import { ROOM_ID } from "@/lib/firestore/single-room-id-constant";
+} from "@/lib/firestore/game-state-singleton-firestore-repository";
+import { subscribeToPlayers } from "@/lib/firestore/top-level-player-firestore-repository";
 import { useGameStore } from "@/stores/game-session-store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { Player, Room } from "@/types/game-firestore-types";
+import type { Player } from "@/types/game-firestore-types";
 
 export function RoomWaitingLobbyPage() {
   const navigate = useNavigate();
   const { uid, isAdmin } = useGameStore();
-  const [room, setRoom] = useState<Room | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [starting, setStarting] = useState(false);
 
   useEffect(() => {
-    const unsub1 = subscribeToRoom(ROOM_ID, (r) => {
-      setRoom(r);
-      if (r?.status === "playing") void navigate({ to: "/game" });
-      if (r?.status === "ended") void navigate({ to: "/podium" });
+    const unsub1 = subscribeToGameState((state) => {
+      if (state?.status === "playing") void navigate({ to: "/game" });
+      if (state?.status === "ended") void navigate({ to: "/podium" });
     });
-    const unsub2 = subscribeToPlayers(ROOM_ID, setPlayers);
+    const unsub2 = subscribeToPlayers(setPlayers);
     return () => {
       unsub1();
       unsub2();
@@ -56,11 +53,9 @@ export function RoomWaitingLobbyPage() {
               <span>{players.length} người chơi</span>
             </div>
           </div>
-          {room?.status === "waiting" && (
-            <p className="text-sm text-muted-foreground">
-              {isAdmin ? "Bấm Bắt đầu game khi đủ người." : "Chờ admin bắt đầu game…"}
-            </p>
-          )}
+          <p className="text-sm text-muted-foreground">
+            {isAdmin ? "Bấm Bắt đầu game khi đủ người." : "Chờ admin bắt đầu game…"}
+          </p>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <ul className="flex flex-col gap-2">
@@ -80,7 +75,6 @@ export function RoomWaitingLobbyPage() {
             )}
           </ul>
 
-          {/* Admin start button */}
           {isAdmin && (
             <Button onClick={handleStartGame} disabled={starting || players.length === 0}>
               {starting ? (

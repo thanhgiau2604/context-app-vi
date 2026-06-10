@@ -1,15 +1,14 @@
 import { useState } from "react";
 import { Flag, StopCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { endCurrentRound, closeSession } from "@/lib/firestore/room-firestore-repository";
+import {
+  endCurrentRound,
+  closeSession,
+} from "@/lib/firestore/game-state-singleton-firestore-repository";
 import { Button } from "@/components/ui/button";
 
 type Props = { roundId: string };
 
-/**
- * Compact admin control strip shown inside the game page when admin is playing along.
- * Allows force-ending the current round or the entire session without returning to admin panel.
- */
 export function AdminInGameControlBar({ roundId }: Props) {
   const [busy, setBusy] = useState(false);
 

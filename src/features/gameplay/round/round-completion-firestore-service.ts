@@ -4,7 +4,6 @@ import { calculateRoundScore } from "@/lib/utils/round-score-calculator";
 import type { PublicRoundResult } from "@/types/game-firestore-types";
 
 type FinishRoundParams = {
-  roomId: string;
   roundId: string;
   uid: string;
   name: string;
@@ -15,7 +14,6 @@ type FinishRoundParams = {
   hintPenalty: number;
   startedAtMs: number;
   finishOrder: number;
-  // True if player reached rank ≤ 50 within the first 60s — grants small bonus for surrendered players
   firstNearMissWithin60s?: boolean;
 };
 
@@ -32,11 +30,10 @@ export async function finishPlayerRound(params: FinishRoundParams): Promise<numb
     firstNearMissWithin60s: params.firstNearMissWithin60s,
   });
 
-  // Atomic batch: all 3 writes succeed or none do (prevents partial score credit)
+  // Atomic batch: playerRounds + publicResults + player totalScore
   const batch = writeBatch(db);
 
-  // Use set (not update) — playerRounds doc is created here for the first time
-  batch.set(doc(db, "rooms", params.roomId, "rounds", params.roundId, "playerRounds", params.uid), {
+  batch.set(doc(db, "rounds", params.roundId, "playerRounds", params.uid), {
     uid: params.uid,
     status: params.status,
     startedAt: Timestamp.fromMillis(params.startedAtMs),
@@ -60,14 +57,10 @@ export async function finishPlayerRound(params: FinishRoundParams): Promise<numb
     roundScore,
     createdAt: serverTimestamp(),
   };
-  batch.set(
-    doc(db, "rooms", params.roomId, "rounds", params.roundId, "publicResults", params.uid),
-    publicResult,
-  );
+  batch.set(doc(db, "rounds", params.roundId, "publicResults", params.uid), publicResult);
 
-  batch.update(doc(db, "rooms", params.roomId, "players", params.uid), {
-    totalScore: increment(roundScore),
-  });
+  // Update cumulative score — use set+merge (update fails if player doc doesn't exist)
+  batch.set(doc(db, "players", params.uid), { totalScore: increment(roundScore) }, { merge: true });
 
   await batch.commit();
   return roundScore;

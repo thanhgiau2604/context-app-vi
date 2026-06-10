@@ -1,7 +1,6 @@
 import { normalizeVietnamese } from "@/lib/utils/normalize-vietnamese-text";
 import { hashTerm } from "@/lib/utils/sha256-term-hash";
-import { lookupTermHash } from "@/lib/firestore/term-index-hash-lookup-service";
-import type { LocalGuess } from "@/types/game-firestore-types";
+import type { LocalGuess, RoundTerm } from "@/types/game-firestore-types";
 
 export type GuessResult = {
   rank: number | null;
@@ -10,11 +9,13 @@ export type GuessResult = {
   localGuess: LocalGuess;
 };
 
+// Pure local lookup — no Firestore reads per guess.
+// terms[] and keywordHash are loaded once when the round starts (see use-round-data-loader hook).
 export async function submitGuess(
   input: string,
+  roundTerms: RoundTerm[],
+  keywordHash: string,
   roundSalt: string,
-  roomId: string,
-  roundId: string,
 ): Promise<GuessResult> {
   const normalized = normalizeVietnamese(input);
   const baseGuess: LocalGuess = {
@@ -26,13 +27,33 @@ export async function submitGuess(
 
   if (!normalized) return { rank: null, type: null, notFound: false, localGuess: baseGuess };
 
-  const hash = await hashTerm(roundSalt, normalized);
-  const result = await lookupTermHash(roomId, roundId, hash);
+  // 1. Check against related terms array (rank 2+)
+  const match = roundTerms.find((t) => t.normalized === normalized);
+  if (match) {
+    return {
+      rank: match.rank,
+      type: "related",
+      notFound: false,
+      localGuess: { ...baseGuess, rank: match.rank },
+    };
+  }
 
+  // 2. Check if it's the keyword via hash comparison (keyword not in terms[])
+  const guessHash = await hashTerm(roundSalt, normalized);
+  if (guessHash === keywordHash) {
+    return {
+      rank: 1,
+      type: "keyword",
+      notFound: false,
+      localGuess: { ...baseGuess, rank: 1 },
+    };
+  }
+
+  // 3. Word not in the 500-word corpus — show as "quá xa"
   return {
-    rank: result?.rank ?? null,
-    type: result?.type ?? null,
-    notFound: result === null,
-    localGuess: { ...baseGuess, rank: result?.rank ?? null, notFound: result === null },
+    rank: null,
+    type: null,
+    notFound: true,
+    localGuess: { ...baseGuess, notFound: true },
   };
 }

@@ -1,12 +1,12 @@
-import { subscribeToPlayers } from "@/lib/firestore/room-firestore-repository";
+import { subscribeToPlayers } from "@/lib/firestore/top-level-player-firestore-repository";
 import { useEffect, useState } from "react";
 import type { Player } from "@/types/game-firestore-types";
 
-export function usePlayersListener(roomId: string | null) {
+// Subscribes to top-level players collection (no longer nested under rooms).
+export function usePlayersListener() {
   const [players, setPlayers] = useState<Player[]>([]);
   useEffect(() => {
-    if (!roomId) return;
-    return subscribeToPlayers(roomId, setPlayers);
-  }, [roomId]);
+    return subscribeToPlayers(setPlayers);
+  }, []);
   return players;
 }

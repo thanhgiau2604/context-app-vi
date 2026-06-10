@@ -4,9 +4,8 @@ import { usePublicResultsRealtime } from "@/hooks/use-public-results-realtime-li
 import { RankBadge } from "@/components/ui/rank-display-badge";
 import { cn } from "@/lib/tailwind-class-merge-utils";
 
-type Props = { roomId: string; roundId: string; activePlayers: number };
+type Props = { roundId: string; activePlayers: number };
 
-// Sort: solved first (by finishOrder asc), then surrendered (by bestRank asc)
 function sortResults(results: ReturnType<typeof usePublicResultsRealtime>) {
   return [...results].sort((a, b) => {
     if (a.status === "solved" && b.status !== "solved") return -1;
@@ -18,8 +17,8 @@ function sortResults(results: ReturnType<typeof usePublicResultsRealtime>) {
   });
 }
 
-export function RealtimeRoundResultsBoard({ roomId, roundId, activePlayers }: Props) {
-  const results = usePublicResultsRealtime(roomId, roundId);
+export function RealtimeRoundResultsBoard({ roundId, activePlayers }: Props) {
+  const results = usePublicResultsRealtime(roundId);
   const sorted = sortResults(results);
   const waiting = activePlayers - results.length;
 

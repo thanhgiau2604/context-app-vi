@@ -2,10 +2,8 @@ import { motion } from "motion/react";
 import { usePlayersListener } from "@/hooks/use-players-realtime-listener";
 import { cn } from "@/lib/tailwind-class-merge-utils";
 
-type Props = { roomId: string };
-
-export function CumulativeScoreLeaderboardPanel({ roomId }: Props) {
-  const players = usePlayersListener(roomId);
+export function CumulativeScoreLeaderboardPanel() {
+  const players = usePlayersListener();
   const sorted = [...players].sort((a, b) => b.totalScore - a.totalScore);
   const maxScore = sorted[0]?.totalScore || 1;
 

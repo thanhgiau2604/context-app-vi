@@ -28,12 +28,11 @@ type Step = "idle" | "generating" | "preview" | "confirming" | "done" | "error";
 type Props = {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  roomId: string;
   adminUid: string;
   onDone: (result: CreateGameResult) => void;
 };
 
-export function CreateGameModalDialog({ open, onOpenChange, roomId, adminUid, onDone }: Props) {
+export function CreateGameModalDialog({ open, onOpenChange, adminUid, onDone }: Props) {
   const { geminiApiKey, geminiModel } = useAdminStore();
   const [step, setStep] = useState<Step>("idle");
   const [topic, setTopic] = useState("");
@@ -58,7 +57,6 @@ export function CreateGameModalDialog({ open, onOpenChange, roomId, adminUid, on
     try {
       const r = await createGame(
         {
-          roomId,
           adminUid,
           apiKey: geminiApiKey,
           model: geminiModel,
@@ -80,7 +78,7 @@ export function CreateGameModalDialog({ open, onOpenChange, roomId, adminUid, on
     setStep("confirming");
     try {
       const r = await createGame(
-        { roomId, adminUid, apiKey: geminiApiKey, model: geminiModel, preValidated: pendingJson },
+        { adminUid, apiKey: geminiApiKey, model: geminiModel, preValidated: pendingJson },
         handleProgress,
       );
       setResult(r);

@@ -16,73 +16,66 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
-    function playerFinished(roomId, roundId) {
-      let pr = get(/databases/$(database)/documents/rooms/$(roomId)/rounds/$(roundId)/playerRounds/$(request.auth.uid));
+    function playerFinished(roundId) {
+      let pr = get(/databases/$(database)/documents/rounds/$(roundId)/playerRounds/$(request.auth.uid));
       return pr.data.status == 'solved' || pr.data.status == 'surrendered';
     }
 
-    function roundRevealed(roomId, roundId) {
-      let r = get(/databases/$(database)/documents/rooms/$(roomId)/rounds/$(roundId));
-      return r.data.status == 'revealed' || r.data.status == 'completed';
+    function roundCompleted(roundId) {
+      let r = get(/databases/$(database)/documents/rounds/$(roundId));
+      return r.data.status == 'completed';
     }
 
-    // ── Rooms ──────────────────────────────────────────────────────────────
-    match /rooms/{roomId} {
+    // ── Game state singleton ───────────────────────────────────────────────
+    match /gameState/{docId} {
       allow read: if signedIn();
       allow create: if isAdmin();
       allow update: if isAdmin();
       allow delete: if false;
+    }
 
-      // ── Players ──────────────────────────────────────────────────────────
-      match /players/{uid} {
-        allow read: if signedIn();
-        allow create: if isSelf(uid);
-        allow update: if isSelf(uid) || isAdmin();
+    // ── Rounds (top-level) ────────────────────────────────────────────────
+    match /rounds/{roundId} {
+      // Players can read the round doc (contains terms[] for local lookup)
+      allow read: if signedIn();
+      allow create, update: if isAdmin();
+      allow delete: if false;
+
+      // private/secret: admin always; player only after finishing or round completed
+      match /private/{docId} {
+        allow read: if isAdmin()
+          || (signedIn() && (playerFinished(roundId) || roundCompleted(roundId)));
+        allow create, update, delete: if isAdmin();
+      }
+
+      // playerRounds: self read/write; admin read
+      match /playerRounds/{uid} {
+        allow read: if isSelf(uid) || isAdmin();
+        allow create, update: if isSelf(uid);
         allow delete: if false;
       }
 
-      // ── Rounds ───────────────────────────────────────────────────────────
-      match /rounds/{roundId} {
+      // publicResults: all signed-in can read; self or admin write
+      match /publicResults/{uid} {
         allow read: if signedIn();
-        allow create, update: if isAdmin();
+        allow create, update: if isSelf(uid) || isAdmin();
         allow delete: if false;
-
-        // termIndex: players can get by known hash but cannot list all docs
-        match /termIndex/{termHash} {
-          allow get: if signedIn();
-          allow list: if false;
-          allow create, update, delete: if isAdmin();
-        }
-
-        // hintPool: individual gets allowed, list blocked to prevent bulk dump
-        match /hintPool/{rank} {
-          allow get: if signedIn();
-          allow list: if false;
-          allow create, update, delete: if isAdmin();
-        }
-
-        // private/secret: admin always; player only after finishing or round revealed
-        match /private/{docId} {
-          allow read: if isAdmin()
-            || (signedIn() && (playerFinished(roomId, roundId) || roundRevealed(roomId, roundId)));
-          allow create, update, delete: if isAdmin();
-        }
-
-        // playerRounds: self read/write; admin read
-        match /playerRounds/{uid} {
-          allow read: if isSelf(uid) || isAdmin();
-          allow create: if isSelf(uid);
-          allow update: if isSelf(uid);
-          allow delete: if false;
-        }
-
-        // publicResults: all signed-in can read; self or admin write
-        match /publicResults/{uid} {
-          allow read: if signedIn();
-          allow create, update: if isSelf(uid) || isAdmin();
-          allow delete: if false;
-        }
       }
+    }
+
+    // ── Players (top-level) ───────────────────────────────────────────────
+    match /players/{uid} {
+      allow read: if signedIn();
+      allow create: if isSelf(uid);
+      allow update: if isSelf(uid) || isAdmin();
+      allow delete: if false;
+    }
+
+    // ── History games (completed game summaries) ──────────────────────────
+    match /historyGames/{roundId} {
+      allow read: if signedIn();
+      allow create, update: if isAdmin();
+      allow delete: if false;
     }
   }
 }

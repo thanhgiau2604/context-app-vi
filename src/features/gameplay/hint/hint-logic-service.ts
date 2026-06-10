@@ -1,4 +1,4 @@
-import { getHintForTargetRank } from "@/lib/firestore/hint-pool-firestore-lookup-service";
+import type { RoundTerm } from "@/types/game-firestore-types";
 
 const HINT_PENALTIES = [25, 45, 70]; // hint 1, 2, 3
 
@@ -40,20 +40,21 @@ export function getHintBlockMessage(reason: HintBlockReason): string {
   }
 }
 
-export async function resolveHint(
-  roomId: string,
-  roundId: string,
+// Pure in-memory hint resolution — no Firestore reads.
+// Picks a random term 1–5 positions better than bestRank (never reveals keyword at rank 1).
+export function resolveHint(
+  roundTerms: RoundTerm[],
   bestRank: number,
   usedHints: number,
-): Promise<HintResult | null> {
-  // Random step 1–5, capped so hint rank is always ≥ 2
+): HintResult | null {
+  // maxStep ensures targetRank stays ≥ 2 (never reveals keyword)
   const maxStep = Math.min(5, bestRank - 2);
   if (maxStep < 1) return null;
 
   const step = Math.floor(Math.random() * maxStep) + 1;
   const targetRank = bestRank - step;
 
-  const entry = await getHintForTargetRank(roomId, roundId, targetRank);
+  const entry = roundTerms.find((t) => t.rank === targetRank);
   if (!entry) return null;
 
   return {

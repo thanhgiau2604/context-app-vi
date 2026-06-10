@@ -2,23 +2,19 @@ import { motion } from "motion/react";
 import { Link } from "@tanstack/react-router";
 import { Trophy, Medal } from "lucide-react";
 import { usePlayersListener } from "@/hooks/use-players-realtime-listener";
-import { ROOM_ID } from "@/lib/firestore/single-room-id-constant";
 import { useGameStore } from "@/stores/game-session-store";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/tailwind-class-merge-utils";
 
-// Podium render order: 2nd left, 1st center (taller), 3rd right
-const PODIUM_ORDER = [1, 0, 2]; // indices into sorted players array
-
+const PODIUM_ORDER = [1, 0, 2]; // render order: 2nd left, 1st centre, 3rd right
 const MEDAL_COLORS = ["text-yellow-400", "text-slate-300", "text-amber-600"];
-const PODIUM_HEIGHTS = ["h-20", "h-28", "h-16"]; // center tallest
-const PODIUM_POSITIONS = [1, 0, 2]; // display position index
+const PODIUM_HEIGHTS = ["h-20", "h-28", "h-16"];
+const PODIUM_POSITIONS = [1, 0, 2];
 
 export function FinalGamePodiumPage() {
   const { isAdmin } = useGameStore();
-  const players = usePlayersListener(ROOM_ID);
+  const players = usePlayersListener();
   const sorted = [...players].sort((a, b) => b.totalScore - a.totalScore);
-
   const top3 = PODIUM_ORDER.map((idx) => sorted[idx] ?? null);
 
   return (
@@ -32,7 +28,6 @@ export function FinalGamePodiumPage() {
         <h1 className="text-3xl font-bold text-gradient-brand">Kết thúc!</h1>
       </motion.div>
 
-      {/* Podium blocks */}
       <div className="flex items-end justify-center gap-4">
         {top3.map((player, displayIdx) => {
           const rankIdx = PODIUM_POSITIONS[displayIdx];
@@ -67,7 +62,6 @@ export function FinalGamePodiumPage() {
         })}
       </div>
 
-      {/* Full leaderboard */}
       {sorted.length > 3 && (
         <div className="w-full max-w-sm flex flex-col gap-2">
           {sorted.slice(3).map((p, i) => (

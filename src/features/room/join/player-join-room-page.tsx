@@ -3,9 +3,8 @@ import { useNavigate } from "@tanstack/react-router";
 import { Loader2, LogIn } from "lucide-react";
 import { toast } from "sonner";
 import { ensureAnonymousUser } from "@/lib/firebase-anonymous-auth";
-import { getRoom } from "@/lib/firestore/room-firestore-repository";
-import { joinRoom } from "@/lib/firestore/player-firestore-repository";
-import { ROOM_ID } from "@/lib/firestore/single-room-id-constant";
+import { getGameState } from "@/lib/firestore/game-state-singleton-firestore-repository";
+import { joinGame } from "@/lib/firestore/top-level-player-firestore-repository";
 import { useGameStore } from "@/stores/game-session-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,22 +25,22 @@ export function PlayerJoinRoomPage() {
 
     setLoading(true);
     try {
-      const room = await getRoom(ROOM_ID);
-      if (!room || room.status === "idle") {
+      const state = await getGameState();
+      if (!state || state.status === "idle") {
         toast.error("Phòng chưa mở. Chờ admin bấm Mở phòng chờ.");
         return;
       }
-      if (room.status === "ended") {
+      if (state.status === "ended") {
         toast.error("Phiên chơi đã kết thúc.");
         return;
       }
-      if (room.status === "playing") {
+      if (state.status === "playing") {
         toast.error("Game đang chạy, không thể tham gia lúc này.");
         return;
       }
 
       const user = await ensureAnonymousUser();
-      await joinRoom(ROOM_ID, user.uid, trimmedName);
+      await joinGame(user.uid, trimmedName);
       setPlayer(user.uid, trimmedName, false);
       void navigate({ to: "/lobby" });
     } catch (e) {

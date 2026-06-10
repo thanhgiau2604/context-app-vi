@@ -7,24 +7,20 @@ import {
   getHintBlockMessage,
   type HintResult,
 } from "./hint-logic-service";
-import { updatePlayerRoundAfterHint } from "@/lib/firestore/player-round-firestore-service";
 import { HintSlotFlipCard } from "./hint-slot-flip-card";
 import { useGameStore } from "@/stores/game-session-store";
 import { Button } from "@/components/ui/button";
 
 type Props = {
-  roomId: string;
-  roundId: string;
-  uid: string;
   roundStatus: string;
 };
 
-export function HintPanel({ roomId, roundId, uid, roundStatus }: Props) {
-  const { bestRank, usedHints, incrementUsedHints } = useGameStore();
+export function HintPanel({ roundStatus }: Props) {
+  const { roundTerms, bestRank, usedHints, incrementUsedHints } = useGameStore();
   const [hints, setHints] = useState<(HintResult | null)[]>([null, null, null]);
   const [loading, setLoading] = useState(false);
 
-  async function handleHint() {
+  function handleHint() {
     const blockReason = getHintBlockReason(bestRank, usedHints, roundStatus);
     if (blockReason) {
       toast.info(getHintBlockMessage(blockReason));
@@ -33,7 +29,7 @@ export function HintPanel({ roomId, roundId, uid, roundStatus }: Props) {
 
     setLoading(true);
     try {
-      const result = await resolveHint(roomId, roundId, bestRank!, usedHints);
+      const result = resolveHint(roundTerms, bestRank!, usedHints);
       if (!result) {
         toast.info("Không tìm được gợi ý phù hợp.");
         return;
@@ -42,17 +38,7 @@ export function HintPanel({ roomId, roundId, uid, roundStatus }: Props) {
       const newHints = [...hints];
       newHints[usedHints] = result;
       setHints(newHints);
-
-      const newUsedHints = usedHints + 1;
-      // Cumulative penalty: sum of all hints used so far (25 → 70 → 140)
-      const cumulativePenalty =
-        hints.slice(0, usedHints).reduce((sum, h) => sum + (h?.penalty ?? 0), 0) + result.penalty;
       incrementUsedHints();
-
-      await updatePlayerRoundAfterHint(roomId, roundId, uid, {
-        usedHints: newUsedHints,
-        hintPenalty: cumulativePenalty,
-      });
     } catch {
       toast.error("Lỗi khi lấy gợi ý. Thử lại.");
     } finally {
