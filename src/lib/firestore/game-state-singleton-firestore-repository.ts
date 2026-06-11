@@ -39,8 +39,16 @@ export async function ensureGameState(adminUid: string): Promise<void> {
 }
 
 // Opens the session so players can join the lobby.
+// New session wipes leftover players so totalScore doesn't bleed across sessions (spec §15.2).
+// Players re-join with a fresh doc (totalScore: 0); playerCount resets to 0.
 export async function openSession(): Promise<void> {
-  await updateDoc(stateRef(), { status: "waiting" });
+  // Cap at 500 to stay under Firestore's per-batch op limit; live players ≤ MAX_PLAYERS,
+  // this only matters if stale docs accumulated from before the wipe-on-open behavior existed.
+  const playersSnap = await getDocs(query(collection(db, "players"), limit(500)));
+  const batch = writeBatch(db);
+  playersSnap.forEach((d) => batch.delete(d.ref));
+  batch.update(stateRef(), { status: "waiting", playerCount: 0 });
+  await batch.commit();
 }
 
 // Starts (or resumes) the game: picks the oldest ready round.

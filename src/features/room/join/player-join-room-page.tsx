@@ -4,7 +4,8 @@ import { Loader2, LogIn } from "lucide-react";
 import { toast } from "sonner";
 import { ensureAnonymousUser } from "@/lib/firebase-anonymous-auth";
 import { getGameState } from "@/lib/firestore/game-state-singleton-firestore-repository";
-import { joinGame } from "@/lib/firestore/top-level-player-firestore-repository";
+import { joinGame, RoomFullError } from "@/lib/firestore/top-level-player-firestore-repository";
+import { MAX_PLAYERS } from "@/lib/config/game-limits-config";
 import { useGameStore } from "@/stores/game-session-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,13 +39,19 @@ export function PlayerJoinRoomPage() {
         toast.error("Game đang chạy, không thể tham gia lúc này.");
         return;
       }
+      // Pre-check cap for UX; transaction in joinGame is the authoritative guard against races.
+      if ((state.playerCount ?? 0) >= MAX_PLAYERS) {
+        toast.error(`Phòng đã đủ ${MAX_PLAYERS} người chơi.`);
+        return;
+      }
 
       const user = await ensureAnonymousUser();
       await joinGame(user.uid, trimmedName);
       setPlayer(user.uid, trimmedName, false);
       void navigate({ to: "/lobby" });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Có lỗi xảy ra.");
+      if (e instanceof RoomFullError) toast.error(e.message);
+      else toast.error(e instanceof Error ? e.message : "Có lỗi xảy ra.");
     } finally {
       setLoading(false);
     }

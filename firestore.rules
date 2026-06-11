@@ -61,14 +61,24 @@ service cloud.firestore {
         allow create, update: if isSelf(uid) || isAdmin();
         allow delete: if false;
       }
+
+      // liveProgress: live best rank per player (no guess words). All read; self writes.
+      match /liveProgress/{uid} {
+        allow read: if signedIn();
+        allow create, update: if isSelf(uid);
+        allow delete: if isAdmin();
+      }
     }
 
     // ── Players (top-level) ───────────────────────────────────────────────
     match /players/{uid} {
       allow read: if signedIn();
-      allow create: if isSelf(uid);
+      // Cap 10 concurrent players (spec §15.6) — count includes admin if admin plays.
+      allow create: if isSelf(uid)
+        && get(/databases/$(database)/documents/gameState/main).data.playerCount < 10;
       allow update: if isSelf(uid) || isAdmin();
-      allow delete: if false;
+      // Admin deletes player docs when opening a new session (totalScore reset, spec §15.2).
+      allow delete: if isAdmin();
     }
 
     // ── History games (completed game summaries) ──────────────────────────

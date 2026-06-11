@@ -1,24 +1,42 @@
 import { db } from "@/lib/firebase-app-init";
 import {
   doc,
-  setDoc,
-  getDoc,
-  updateDoc,
   onSnapshot,
   collection,
   serverTimestamp,
   increment,
+  runTransaction,
 } from "firebase/firestore";
+import { MAX_PLAYERS } from "@/lib/config/game-limits-config";
 
-// Players are top-level: players/{uid} (no longer nested under rooms)
-// Only increments playerCount for NEW players — re-joins/refreshes don't double-count.
+// Thrown when the room is already at MAX_PLAYERS — caller shows a friendly message.
+export class RoomFullError extends Error {
+  constructor() {
+    super(`Phòng đã đủ ${MAX_PLAYERS} người chơi.`);
+    this.name = "RoomFullError";
+  }
+}
+
+// Players are top-level: players/{uid} (no longer nested under rooms).
+// Transaction enforces the 10-player cap atomically (spec §15.6) — guards against join races.
+// New players increment playerCount; re-joins/refreshes don't double-count.
 export async function joinGame(uid: string, name: string): Promise<void> {
   const playerRef = doc(db, "players", uid);
-  const existing = await getDoc(playerRef);
+  const stateRef = doc(db, "gameState", "main");
 
-  if (!existing.exists()) {
-    // New player: create doc + register in playerCount
-    await setDoc(playerRef, {
+  await runTransaction(db, async (tx) => {
+    const playerSnap = await tx.get(playerRef);
+    if (playerSnap.exists()) {
+      // Returning player: refresh activity, don't touch playerCount.
+      tx.update(playerRef, { isActive: true, lastSeenAt: serverTimestamp() });
+      return;
+    }
+
+    const stateSnap = await tx.get(stateRef);
+    const count = (stateSnap.data()?.playerCount as number | undefined) ?? 0;
+    if (count >= MAX_PLAYERS) throw new RoomFullError();
+
+    tx.set(playerRef, {
       uid,
       name,
       joinedAt: serverTimestamp(),
@@ -26,14 +44,8 @@ export async function joinGame(uid: string, name: string): Promise<void> {
       totalScore: 0,
       lastSeenAt: serverTimestamp(),
     });
-    await updateDoc(doc(db, "gameState", "main"), { playerCount: increment(1) });
-  } else {
-    // Returning player: just refresh activity fields, don't touch playerCount
-    await updateDoc(playerRef, {
-      isActive: true,
-      lastSeenAt: serverTimestamp(),
-    });
-  }
+    tx.update(stateRef, { playerCount: increment(1) });
+  });
 }
 
 export function subscribeToPlayers(

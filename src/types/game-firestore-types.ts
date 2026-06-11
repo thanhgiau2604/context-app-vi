@@ -21,7 +21,7 @@ export type GameState = {
 export type RoundTerm = {
   term: string;
   normalized: string; // normalizeVietnamese(term) — used for local lookup
-  rank: number; // 2–501 (keyword is rank 1, stored only in private/secret)
+  rank: number; // 2–500 (keyword is rank 1, stored only in private/secret)
 };
 
 // Path: rounds/{roundId}
@@ -32,7 +32,7 @@ export type Round = {
   roundSalt: string;
   keywordHash: string; // hash(roundSalt + normalizedKeyword) for client-side keyword detection
   termCount: number;
-  terms: RoundTerm[]; // all 500 related terms embedded; loaded once for local lookup
+  terms: RoundTerm[]; // all 499 related terms (rank 2–500) embedded; loaded once for local lookup
   createdBy: string;
   createdAt: Timestamp;
   startedAt?: Timestamp;

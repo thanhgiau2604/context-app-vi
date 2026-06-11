@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import {
-  subscribeToGameState,
-  endCurrentRound,
-} from "@/lib/firestore/game-state-singleton-firestore-repository";
+import { subscribeToGameState } from "@/lib/firestore/game-state-singleton-firestore-repository";
 import { getRoundKeyword } from "@/lib/firestore/round-with-embedded-terms-firestore-repository";
 import { useRoundDataLoader } from "@/hooks/use-round-data-loader";
 import { useGameStore } from "@/stores/game-session-store";
@@ -16,10 +13,9 @@ import { KeywordRevealCard } from "./keyword-reveal-card";
 import { BetweenRoundsKeywordRevealSummary } from "./between-rounds-keyword-reveal-summary";
 import { AdminInGameControlBar } from "@/features/admin/panel/admin-in-game-control-bar";
 import { finishPlayerRound } from "./round-completion-firestore-service";
-import {
-  usePublicResultsRealtime,
-  subscribeToPublicResults,
-} from "@/hooks/use-public-results-realtime-listener";
+import { PROX_THRESHOLD, PROX_WINDOW_SEC } from "@/lib/config/scoring-config";
+import { usePublicResultsRealtime } from "@/hooks/use-public-results-realtime-listener";
+import { useAutoEndRoundWhenAllFinished } from "@/hooks/use-auto-end-round-when-all-finished";
 import { RealtimeRoundResultsBoard } from "@/features/results/public-board/realtime-round-results-board";
 import { CumulativeScoreLeaderboardPanel } from "@/features/results/leaderboard/cumulative-score-leaderboard-panel";
 import type { GameState } from "@/types/game-firestore-types";
@@ -51,15 +47,15 @@ export function GamePageLayout() {
   const [firstNearMissWithin60s, setFirstNearMissWithin60s] = useState(false);
   const [lastRoundId, setLastRoundId] = useState<string | null>(null);
   const prevRoundIdRef = useRef<string | null>(null);
-  const autoEndedRoundRef = useRef<string | null>(null);
 
-  // Detect near-miss: bestRank ≤ 50 within 60s of round start
+  // Detect near-miss: bestRank ≤ PROX_THRESHOLD within PROX_WINDOW_SEC of round start.
+  // Gate must mirror calculator's proximity gate (scoring-config) — keep in sync via shared consts.
   useEffect(() => {
     if (
       !firstNearMissWithin60s &&
       bestRank !== null &&
-      bestRank <= 50 &&
-      Date.now() - startedAtMs <= 60_000
+      bestRank <= PROX_THRESHOLD &&
+      Date.now() - startedAtMs <= PROX_WINDOW_SEC * 1000
     ) {
       setFirstNearMissWithin60s(true);
     }
@@ -98,16 +94,8 @@ export function GamePageLayout() {
   const publicResults = usePublicResultsRealtime(roundId ?? lastRoundId);
   const activePlayers = gameState?.playerCount ?? 0;
 
-  // Admin auto-end when all players submit results
-  useEffect(() => {
-    if (!isAdmin || !roundId || activePlayers === 0) return;
-    return subscribeToPublicResults(roundId, (results) => {
-      if (results.length >= activePlayers && autoEndedRoundRef.current !== roundId) {
-        autoEndedRoundRef.current = roundId;
-        endCurrentRound(roundId).catch(console.error);
-      }
-    });
-  }, [isAdmin, roundId, activePlayers]);
+  // Admin auto-ends the round only when ALL active players have finished (spec §4.3).
+  useAutoEndRoundWhenAllFinished(roundId, isAdmin);
 
   async function fetchAndRevealKeyword(rId: string) {
     try {
@@ -214,11 +202,8 @@ export function GamePageLayout() {
           <RoundStatusHeaderBar
             roundNumber={1}
             startedAtMs={startedAtMs}
-            onHint={() => {}}
             onSurrender={() => setShowSurrenderConfirm(true)}
-            hintDisabled={true}
             surrenderDisabled={!isPlaying}
-            usedHints={usedHints}
           />
 
           {isPlaying && <GuessInputForm disabled={false} onSolved={handleSolved} />}

@@ -6,21 +6,15 @@ import { Badge } from "@/components/ui/badge";
 type Props = {
   roundNumber: number;
   startedAtMs: number;
-  onHint: () => void;
   onSurrender: () => void;
-  hintDisabled: boolean;
   surrenderDisabled: boolean;
-  usedHints: number;
 };
 
 export function RoundStatusHeaderBar({
   roundNumber,
   startedAtMs,
-  onHint,
   onSurrender,
-  hintDisabled,
   surrenderDisabled,
-  usedHints,
 }: Props) {
   const { bestRank, localGuesses } = useGameStore();
   const [elapsedSec, setElapsedSec] = useState(0);
@@ -49,13 +43,6 @@ export function RoundStatusHeaderBar({
       <span className="ml-auto font-mono text-sm tabular-nums text-muted-foreground">
         {mm}:{ss}
       </span>
-      <button
-        onClick={onHint}
-        disabled={hintDisabled}
-        className="rounded-md border border-border px-2 py-1 text-xs disabled:opacity-40 hover:bg-muted/30 transition-colors"
-      >
-        💡 Gợi ý ({3 - usedHints} còn)
-      </button>
       <button
         onClick={onSurrender}
         disabled={surrenderDisabled}
