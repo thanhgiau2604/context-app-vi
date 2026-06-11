@@ -1,45 +1,67 @@
 import { motion } from "motion/react";
+import { Trophy, Medal, Award } from "lucide-react";
 import { usePlayersListener } from "@/hooks/use-players-realtime-listener";
 import { cn } from "@/lib/tailwind-class-merge-utils";
 
+// Medal styling for the top 3 ranks; rank ≥4 falls back to a plain "#n".
+const MEDAL = [
+  { Icon: Trophy, color: "text-yellow-400", ring: "border-yellow-400/40 bg-yellow-400/10" },
+  { Icon: Medal, color: "text-slate-300", ring: "border-slate-300/40 bg-slate-300/10" },
+  { Icon: Award, color: "text-amber-600", ring: "border-amber-600/40 bg-amber-600/10" },
+];
+
 export function CumulativeScoreLeaderboardPanel() {
   const players = usePlayersListener();
+  // Render exactly one row per existing player — no fixed slot count.
   const sorted = [...players].sort((a, b) => b.totalScore - a.totalScore);
-  const maxScore = sorted[0]?.totalScore || 1;
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-border bg-muted/10 p-4">
-      <span className="text-sm font-medium">Bảng điểm tổng</span>
+    <div className="flex flex-col gap-2 game-card p-4">
+      <span className="text-base font-semibold text-gradient-brand">Bảng điểm tổng</span>
 
       {sorted.length === 0 && (
-        <p className="text-xs text-muted-foreground text-center py-2">Chưa có điểm.</p>
+        <p className="text-sm text-muted-foreground text-center py-3">Chưa có điểm.</p>
       )}
 
-      {sorted.map((p, i) => (
-        <div key={p.uid} className="flex flex-col gap-1">
-          <div className="flex items-center gap-2 text-sm">
-            <span
+      <div className="flex flex-col gap-1.5">
+        {sorted.map((p, i) => {
+          const medal = MEDAL[i];
+          return (
+            <motion.div
+              key={p.uid}
+              layout
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25, delay: i * 0.04 }}
               className={cn(
-                "w-5 text-center font-bold",
-                i === 0 && "text-yellow-400",
-                i === 1 && "text-slate-300",
-                i === 2 && "text-amber-600",
+                "flex items-center gap-3 rounded-lg border px-3 py-2.5",
+                medal ? medal.ring : "border-border bg-muted/10",
+                i === 0 && "game-glow",
               )}
             >
-              #{i + 1}
-            </span>
-            <span className="flex-1 truncate">{p.name}</span>
-            <span className="font-mono text-xs text-muted-foreground">{p.totalScore}đ</span>
-          </div>
-          <div className="h-1.5 w-full rounded-full bg-muted/30 overflow-hidden">
-            <motion.div
-              className="h-full rounded-full bg-primary"
-              animate={{ width: `${(p.totalScore / maxScore) * 100}%` }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-            />
-          </div>
-        </div>
-      ))}
+              <span className="flex w-7 shrink-0 items-center justify-center">
+                {medal ? (
+                  <medal.Icon size={20} className={medal.color} aria-hidden="true" />
+                ) : (
+                  <span className="font-mono text-sm font-bold text-muted-foreground">
+                    #{i + 1}
+                  </span>
+                )}
+              </span>
+              <span className="flex-1 truncate text-base font-semibold">{p.name}</span>
+              <span
+                className={cn(
+                  "font-mono text-lg font-bold tabular-nums",
+                  medal ? medal.color : "text-foreground",
+                )}
+              >
+                {p.totalScore}
+                <span className="ml-0.5 text-xs font-normal text-muted-foreground">đ</span>
+              </span>
+            </motion.div>
+          );
+        })}
+      </div>
     </div>
   );
 }

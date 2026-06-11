@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   Loader2,
@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Gamepad2,
   Flag,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase-app-init";
@@ -26,7 +27,8 @@ import {
   subscribeToGameState,
   subscribeToGameLibrary,
 } from "@/lib/firestore/game-state-singleton-firestore-repository";
-import { subscribeToPublicResults } from "@/hooks/use-public-results-realtime-listener";
+import { updateRoundStatus } from "@/lib/firestore/round-with-embedded-terms-firestore-repository";
+import { useAutoEndRoundWhenAllFinished } from "@/hooks/use-auto-end-round-when-all-finished";
 import { joinGame } from "@/lib/firestore/top-level-player-firestore-repository";
 import { useGameStore } from "@/stores/game-session-store";
 import { CreateGameModalDialog } from "@/features/admin/create-game/create-game-modal-dialog";
@@ -82,7 +84,6 @@ export function AdminPanelPage() {
   const [library, setLibrary] = useState<Round[]>([]);
   const [showCreateGame, setShowCreateGame] = useState(false);
   const [busy, setBusy] = useState(false);
-  const autoEndedRoundRef = useRef<string | null>(null);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -98,18 +99,11 @@ export function AdminPanelPage() {
     };
   }, [setPlayer]);
 
-  // Auto-end round when all registered players submit results
-  useEffect(() => {
-    const rId = gameState?.currentRoundId;
-    const playerCount = gameState?.playerCount ?? 0;
-    if (!rId || gameState?.status !== "playing" || playerCount === 0) return;
-    return subscribeToPublicResults(rId, (results) => {
-      if (results.length >= playerCount && autoEndedRoundRef.current !== rId) {
-        autoEndedRoundRef.current = rId;
-        endCurrentRound(rId).catch(console.error);
-      }
-    });
-  }, [gameState?.currentRoundId, gameState?.status, gameState?.playerCount]);
+  // Auto-end round only when ALL active players have finished (spec §4.3).
+  useAutoEndRoundWhenAllFinished(
+    gameState?.status === "playing" ? (gameState?.currentRoundId ?? null) : null,
+    true,
+  );
 
   async function run(fn: () => Promise<void>, errMsg: string) {
     setBusy(true);
@@ -139,11 +133,11 @@ export function AdminPanelPage() {
 
   return (
     <>
-      <Card className="w-full max-w-lg">
+      <Card className="w-full max-w-2xl game-card">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <CardTitle className="text-gradient-brand">Admin Dashboard</CardTitle>
+              <CardTitle className="text-2xl text-gradient-brand">Admin Dashboard</CardTitle>
               {gameState && <GameStatusBadge status={status} />}
             </div>
             <Button
@@ -154,8 +148,9 @@ export function AdminPanelPage() {
                 toast.info("Đã đăng xuất.");
               }}
               title="Đăng xuất"
+              aria-label="Đăng xuất"
             >
-              <LogOut size={16} />
+              <LogOut size={16} aria-hidden="true" />
             </Button>
           </div>
         </CardHeader>
@@ -166,6 +161,9 @@ export function AdminPanelPage() {
                 onClick={() =>
                   run(async () => {
                     await openSession();
+                    // Admin is a player entity (spec §3.1/4.1): join so admin shows in
+                    // lobby list and counts toward round-end (all-players-finished gate).
+                    if (uid) await joinGame(uid, "Admin");
                     void navigate({ to: "/lobby" });
                   }, "Không mở được phòng")
                 }
@@ -181,7 +179,7 @@ export function AdminPanelPage() {
             {status === "waiting" && (
               <Button onClick={() => run(startGameSession, "Không bắt đầu được")} disabled={busy}>
                 {busy ? (
-                  <Loader2 size={16} className="mr-2 animate-spin" />
+                  <Loader2 size={16} className="mr-2 animate-spin" aria-hidden="true" />
                 ) : (
                   <Play size={16} className="mr-2" />
                 )}
@@ -199,7 +197,7 @@ export function AdminPanelPage() {
                   disabled={busy}
                 >
                   {busy ? (
-                    <Loader2 size={16} className="animate-spin mr-2" />
+                    <Loader2 size={16} className="animate-spin mr-2" aria-hidden="true" />
                   ) : (
                     <Flag size={16} className="mr-2" />
                   )}
@@ -229,7 +227,7 @@ export function AdminPanelPage() {
                   title={readyCount === 0 ? "Hết game trong kho" : undefined}
                 >
                   {busy ? (
-                    <Loader2 size={16} className="animate-spin mr-2" />
+                    <Loader2 size={16} className="animate-spin mr-2" aria-hidden="true" />
                   ) : (
                     <SkipForward size={16} className="mr-2" />
                   )}
@@ -272,8 +270,8 @@ export function AdminPanelPage() {
               Tạo game mới
             </Button>
             <Button variant="outline" asChild>
-              <Link to="/admin/settings">
-                <Settings size={16} />
+              <Link to="/admin/settings" aria-label="Cài đặt" title="Cài đặt">
+                <Settings size={16} aria-hidden="true" />
               </Link>
             </Button>
           </div>
@@ -287,13 +285,32 @@ export function AdminPanelPage() {
                 {library.map((r, i) => (
                   <li
                     key={r.roundId}
-                    className="flex items-center gap-3 rounded-lg bg-muted/10 border border-border/40 px-3 py-2 text-sm"
+                    className="flex items-center gap-3 rounded-lg bg-muted/10 border border-border/40 px-4 py-3 text-base"
                   >
-                    <span className="text-muted-foreground font-mono w-6">#{i + 1}</span>
-                    <span className="flex-1 text-xs font-mono text-muted-foreground truncate">
+                    <span className="text-muted-foreground font-mono font-bold w-7">#{i + 1}</span>
+                    <span className="flex-1 text-sm font-mono text-muted-foreground truncate">
                       {r.roundId}
                     </span>
                     <RoundStatusBadge status={r.status} />
+                    {/* Force về "ready" để chơi lại — chỉ với game đã chơi (completed) hoặc draft */}
+                    {(r.status === "completed" || r.status === "draft") && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 shrink-0"
+                        disabled={busy}
+                        title="Cho chơi lại (đánh dấu sẵn sàng)"
+                        aria-label="Cho chơi lại"
+                        onClick={() =>
+                          run(async () => {
+                            await updateRoundStatus(r.roundId, "ready");
+                            toast.success("Game đã sẵn sàng để chơi lại.");
+                          }, "Không cập nhật được trạng thái game")
+                        }
+                      >
+                        <RotateCcw size={14} aria-hidden="true" />
+                      </Button>
+                    )}
                   </li>
                 ))}
               </ul>

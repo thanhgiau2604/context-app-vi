@@ -1,26 +1,22 @@
-// Scoring formula:
-// base (by bestRank) + solvedBonus + speedBonus + nearMissBonus
-//   - guessPenalty - hintPenalty - surrenderPenalty
+// Round scoring — spec §8.
+//   solveScore     = max(MIN_SOLVE_SCORE, SOLVE_BASE - (guessCount-1)*GUESS_PENALTY)   // chỉ khi solved
+//   timePenalty    = min(CAP, max(0, elapsedSec - GRACE) * PER_SEC)                     // chỉ khi solved
+//   proximityBonus = bestRank ≤ THRESHOLD && trong cửa sổ ? (THRESHOLD - bestRank)*FACTOR : 0  // CẢ solved + surrendered
+//   hintPenalty    = Σ HINT_PENALTIES[0 .. usedHints-1]   // leo thang [25,45,70]
+//   roundScore(solved)      = max(0, solveScore + proximityBonus - timePenalty - hintPenalty)
+//   roundScore(surrendered) = max(0, proximityBonus - hintPenalty)
 
-const HINT_PENALTIES = [25, 45, 70];
-
-function getBaseScore(bestRank: number | null): number {
-  if (!bestRank) return 0;
-  if (bestRank === 1) return 1000;
-  if (bestRank <= 3) return 750;
-  if (bestRank <= 10) return 500;
-  if (bestRank <= 50) return 250;
-  if (bestRank <= 100) return 120;
-  if (bestRank <= 300) return 40;
-  if (bestRank <= 500) return 10;
-  return 0;
-}
-
-function getSpeedBonus(status: "solved" | "surrendered", durationSec: number): number {
-  if (status !== "solved") return 0;
-  // Up to +200 pts, decreases by 1.5 pts/sec — gone after ~2 min 13s
-  return Math.max(0, 200 - Math.floor(durationSec * 1.5));
-}
+import {
+  SOLVE_BASE,
+  GUESS_PENALTY,
+  MIN_SOLVE_SCORE,
+  TIME_GRACE_SEC,
+  TIME_PENALTY_PER_SEC,
+  TIME_PENALTY_CAP,
+  PROX_THRESHOLD,
+  PROX_FACTOR,
+  HINT_PENALTIES,
+} from "@/lib/config/scoring-config";
 
 export function calculateRoundScore(params: {
   status: "solved" | "surrendered";
@@ -28,23 +24,35 @@ export function calculateRoundScore(params: {
   durationSec: number;
   guessCount: number;
   usedHints: number;
-  // Small +50 bonus when first near-miss (rank ≤ 50) achieved within 60s — only for non-solved
+  // true khi bestRank ≤ PROX_THRESHOLD đạt được trong PROX_WINDOW_SEC đầu (client track) — cờ proximity-in-window
   firstNearMissWithin60s?: boolean;
 }): number {
-  const base = getBaseScore(params.bestRank);
-  const solvedBonus = params.status === "solved" ? 300 : 0;
-  const speedBonus = getSpeedBonus(params.status, params.durationSec);
-  // Near-miss bonus only meaningful for surrendered players (solved already earns full base+bonus)
-  const nearMissBonus = params.firstNearMissWithin60s && params.status !== "solved" ? 50 : 0;
-  const guessPenalty = Math.min(params.guessCount * 3, 120);
+  const solved = params.status === "solved";
+
+  const solveScore = solved
+    ? Math.max(MIN_SOLVE_SCORE, SOLVE_BASE - (params.guessCount - 1) * GUESS_PENALTY)
+    : 0;
+
+  const timePenalty = solved
+    ? Math.min(
+        TIME_PENALTY_CAP,
+        Math.max(0, params.durationSec - TIME_GRACE_SEC) * TIME_PENALTY_PER_SEC,
+      )
+    : 0;
+
+  // Proximity bonus áp cho cả solved + surrendered (spec §15.4), một lần theo bestRank trong cửa sổ.
+  const inWindow = params.firstNearMissWithin60s === true;
+  const proximityBonus =
+    inWindow && params.bestRank != null && params.bestRank <= PROX_THRESHOLD
+      ? (PROX_THRESHOLD - params.bestRank) * PROX_FACTOR
+      : 0;
+
   const hintPenalty = Array.from(
     { length: params.usedHints },
     (_, i) => HINT_PENALTIES[i] ?? 0,
   ).reduce((a, b) => a + b, 0);
-  const surrenderPenalty = params.status === "surrendered" ? 80 : 0;
 
-  return Math.max(
-    0,
-    base + solvedBonus + speedBonus + nearMissBonus - guessPenalty - hintPenalty - surrenderPenalty,
-  );
+  // Round to integer: durationSec is fractional (ms/1000) → fractional timePenalty.
+  // Scores display as whole numbers (range up to ~1000). Single source of truth.
+  return Math.round(Math.max(0, solveScore + proximityBonus - timePenalty - hintPenalty));
 }
