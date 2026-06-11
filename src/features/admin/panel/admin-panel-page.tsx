@@ -13,6 +13,8 @@ import {
   Gamepad2,
   Flag,
   RotateCcw,
+  Eye,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase-app-init";
@@ -27,14 +29,28 @@ import {
   subscribeToGameState,
   subscribeToGameLibrary,
 } from "@/lib/firestore/game-state-singleton-firestore-repository";
-import { updateRoundStatus } from "@/lib/firestore/round-with-embedded-terms-firestore-repository";
+import {
+  updateRoundStatus,
+  deleteRound,
+} from "@/lib/firestore/round-with-embedded-terms-firestore-repository";
 import { useAutoEndRoundWhenAllFinished } from "@/hooks/use-auto-end-round-when-all-finished";
 import { joinGame } from "@/lib/firestore/top-level-player-firestore-repository";
 import { useGameStore } from "@/stores/game-session-store";
 import { CreateGameModalDialog } from "@/features/admin/create-game/create-game-modal-dialog";
+import { RoundDetailDialog } from "@/features/admin/panel/admin-round-detail-with-terms-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { GameState, Round } from "@/types/game-firestore-types";
 
 function GameStatusBadge({ status }: { status: GameState["status"] }) {
@@ -84,6 +100,8 @@ export function AdminPanelPage() {
   const [library, setLibrary] = useState<Round[]>([]);
   const [showCreateGame, setShowCreateGame] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [detailRound, setDetailRound] = useState<Round | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Round | null>(null);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -311,6 +329,31 @@ export function AdminPanelPage() {
                         <RotateCcw size={14} aria-hidden="true" />
                       </Button>
                     )}
+                    {/* Xem chi tiết: đáp án + 499 từ liên quan */}
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 shrink-0"
+                      title="Xem chi tiết"
+                      aria-label="Xem chi tiết"
+                      onClick={() => setDetailRound(r)}
+                    >
+                      <Eye size={14} aria-hidden="true" />
+                    </Button>
+                    {/* Xóa game — chặn xóa round đang chơi */}
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
+                      disabled={busy || r.roundId === currentRoundId}
+                      title={
+                        r.roundId === currentRoundId ? "Không thể xóa game đang chơi" : "Xóa game"
+                      }
+                      aria-label="Xóa game"
+                      onClick={() => setDeleteTarget(r)}
+                    >
+                      <Trash2 size={14} aria-hidden="true" />
+                    </Button>
                   </li>
                 ))}
               </ul>
@@ -334,6 +377,49 @@ export function AdminPanelPage() {
           }}
         />
       )}
+
+      <RoundDetailDialog
+        round={detailRound}
+        open={detailRound !== null}
+        onOpenChange={(open) => {
+          if (!open) setDetailRound(null);
+        }}
+      />
+
+      <AlertDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+      >
+        <AlertDialogContent className="game-card">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xóa game này?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Game <span className="font-mono font-semibold">{deleteTarget?.roundId}</span> và toàn
+              bộ dữ liệu liên quan sẽ bị xóa vĩnh viễn. Không thể hoàn tác.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={busy}
+              onClick={() => {
+                const target = deleteTarget;
+                if (!target) return;
+                void run(async () => {
+                  await deleteRound(target.roundId);
+                  toast.success("Đã xóa game.");
+                  setDeleteTarget(null);
+                }, "Không xóa được game");
+              }}
+            >
+              Xóa
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

@@ -69,6 +69,16 @@ export async function queueWipeRoundProgress(
   }
 }
 
+// Permanently deletes a round: round doc + private/secret + all per-player progress
+// subcollections (playerRounds, publicResults, liveProgress). Irreversible.
+export async function deleteRound(roundId: string): Promise<void> {
+  const batch = writeBatch(db);
+  await queueWipeRoundProgress(batch, roundId);
+  batch.delete(doc(db, "rounds", roundId, "private", "secret"));
+  batch.delete(doc(db, "rounds", roundId));
+  await batch.commit();
+}
+
 // Returns terms + keywordHash + roundSalt needed for client-side guess lookup.
 export async function getRoundData(
   roundId: string,
