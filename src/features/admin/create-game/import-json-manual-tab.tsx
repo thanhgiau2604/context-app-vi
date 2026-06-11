@@ -67,7 +67,7 @@ export function ImportJsonManualTab({ onValidated }: Props) {
           <div className="border-t border-border/60 px-3 pb-3 pt-2 flex flex-col gap-2">
             <p className="text-xs text-muted-foreground">
               Copy prompt này, dán vào bất kỳ AI agent nào (ChatGPT, Gemini, Claude…) để tạo keyword
-              + 500 từ liên quan. Sau đó dán JSON trả về vào ô bên dưới.
+              + 499 từ liên quan. Sau đó dán JSON trả về vào ô bên dưới.
             </p>
             <pre className="max-h-48 overflow-y-auto rounded-md border border-border bg-muted/30 p-3 text-xs font-mono whitespace-pre-wrap leading-relaxed">
               {prompt}

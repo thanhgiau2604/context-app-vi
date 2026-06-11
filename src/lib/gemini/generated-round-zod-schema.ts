@@ -2,12 +2,13 @@ import { z } from "zod";
 
 export const RelatedTermSchema = z.object({
   term: z.string().min(1).max(50),
-  rank: z.number().int().min(2).max(501),
+  rank: z.number().int().min(2).max(500),
 });
 
 export const GeneratedRoundSchema = z.object({
   keyword: z.string().min(1),
-  // Accept 400–510 items — sanitizer deduplicates before validation so exact 500 not enforced
+  // Loose bounds — service layer (gemini-round-generation-service) enforces EXACT 499
+  // after sanitize+truncate, then retries if short. See TARGET_TERM_COUNT.
   relatedTerms: z.array(RelatedTermSchema).min(400).max(510),
 });
 

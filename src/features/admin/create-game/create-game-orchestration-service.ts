@@ -39,7 +39,7 @@ export async function createGame(
     generated = input.preValidated;
     onProgress({ step: "validating", message: "Dữ liệu đã được xác thực." });
   } else {
-    onProgress({ step: "generating", message: "Gemini đang tạo keyword và 500 từ liên quan…" });
+    onProgress({ step: "generating", message: "Gemini đang tạo keyword và 499 từ liên quan…" });
     generated = await generateRoundWithGemini({
       apiKey: input.apiKey,
       model: input.model,

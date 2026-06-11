@@ -215,7 +215,7 @@ draft (đang soạn) ──► ready (trong thư viện) ──► playing (đan
 | `PROX_WINDOW_SEC`      | 60              | Cửa sổ thưởng "đoán gần" tính từ đầu ván |
 | `PROX_THRESHOLD`       | 50              | Chỉ thưởng khi bestRank ≤ 50             |
 | `PROX_FACTOR`          | 2               | Hệ số thưởng gần                         |
-| `HINT_PENALTY`         | 50              | Trừ mỗi hint dùng                        |
+| `HINT_PENALTIES`       | `[25, 45, 70]`  | Trừ leo thang theo hint thứ 1/2/3        |
 
 ### 8.2 Công thức
 
@@ -243,10 +243,12 @@ proximityBonus = (PROX_THRESHOLD - bestRank) * PROX_FACTOR   // càng gần càn
 roundScore = max(0, proximityBonus - hintPenalty)   // không có solveScore
 ```
 
-**Hint penalty:**
+**Hint penalty (leo thang):**
 
 ```
-hintPenalty = usedHints * HINT_PENALTY
+hintPenalty = Σ HINT_PENALTIES[0 .. usedHints-1]
+// hint 1 → −25, hint 2 → −45, hint 3 → −70; dùng đủ 3 → −140
+// càng lật nhiều phạt mỗi hint càng nặng, răn đe lạm dụng
 ```
 
 **Điểm tích lũy (totalScore):** `Player.totalScore = Σ roundScore` qua các ván trong phiên. Leaderboard tổng kết sort theo `totalScore` giảm dần. **Reset về 0 mỗi phiên mới** (§15.2).
