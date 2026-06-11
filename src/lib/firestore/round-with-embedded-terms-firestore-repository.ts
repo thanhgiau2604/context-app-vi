@@ -54,6 +54,21 @@ export async function updateRoundStatus(roundId: string, status: Round["status"]
   await updateDoc(doc(db, "rounds", roundId), { status });
 }
 
+// Queues deletes for a round's per-player progress subcollections (playerRounds,
+// publicResults, liveProgress) onto the given batch. Run when (re)starting a round so a
+// replayed round begins clean — otherwise stale "finished" publicResults make the
+// auto-end hook end the round instantly. Keeps private/secret (keyword) + the round doc.
+export async function queueWipeRoundProgress(
+  batch: ReturnType<typeof writeBatch>,
+  roundId: string,
+): Promise<void> {
+  const subcollections = ["playerRounds", "publicResults", "liveProgress"];
+  for (const sub of subcollections) {
+    const snap = await getDocs(collection(db, "rounds", roundId, sub));
+    snap.forEach((d) => batch.delete(d.ref));
+  }
+}
+
 // Returns terms + keywordHash + roundSalt needed for client-side guess lookup.
 export async function getRoundData(
   roundId: string,

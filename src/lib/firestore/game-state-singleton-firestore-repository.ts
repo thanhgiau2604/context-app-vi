@@ -16,6 +16,7 @@ import {
   deleteField,
 } from "firebase/firestore";
 import type { GameState, Round } from "@/types/game-firestore-types";
+import { queueWipeRoundProgress } from "@/lib/firestore/round-with-embedded-terms-firestore-repository";
 
 const STATE_DOC = "main";
 const STATE_COL = "gameState";
@@ -69,6 +70,9 @@ export async function startGameSession(): Promise<void> {
 
   const firstRound = snap.docs[0];
   const batch = writeBatch(db);
+  // Clear any stale per-player progress from a previous play of this round, else the
+  // auto-end hook sees old "finished" results and force-ends the round immediately.
+  await queueWipeRoundProgress(batch, firstRound.id);
   batch.update(stateRef(), {
     status: "playing",
     currentRoundId: firstRound.id,
