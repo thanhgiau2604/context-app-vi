@@ -73,7 +73,7 @@ export function HintPanel({ roundStatus }: Props) {
         variant="outline"
         size="sm"
         onClick={handleHint}
-        disabled={loading || blockReason !== null}
+        disabled={loading}
         title={blockReason ? getHintBlockMessage(blockReason) : undefined}
       >
         {loading ? (

@@ -38,6 +38,7 @@ export function GamePageLayout() {
 
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [startedAtMs, setStartedAtMs] = useState(Date.now());
+  const [finishedAtMs, setFinishedAtMs] = useState<number | null>(null);
   const [solved, setSolved] = useState(false);
   const [surrendered, setSurrendered] = useState(false);
   const [showSurrenderConfirm, setShowSurrenderConfirm] = useState(false);
@@ -75,6 +76,7 @@ export function GamePageLayout() {
           setRevealedKeyword(null);
           setFirstNearMissWithin60s(false);
           setStartedAtMs(Date.now());
+          setFinishedAtMs(null);
         }
         prevRoundIdRef.current = state.currentRoundId;
         setLastRoundId(state.currentRoundId);
@@ -109,6 +111,7 @@ export function GamePageLayout() {
   async function handleSolved() {
     if (!roundId || !uid || !playerName) return;
     setSolved(true);
+    setFinishedAtMs(Date.now());
     try {
       const score = await finishPlayerRound({
         roundId,
@@ -135,6 +138,7 @@ export function GamePageLayout() {
   async function handleSurrender() {
     if (!roundId || !uid || !playerName) return;
     setSurrendered(true);
+    setFinishedAtMs(Date.now());
     setShowSurrenderConfirm(false);
     const surrenderBestRank = localGuesses.reduce<number | null>(
       (min, g) => (g.rank === null ? min : min === null || g.rank < min ? g.rank : min),
@@ -202,6 +206,7 @@ export function GamePageLayout() {
           <RoundStatusHeaderBar
             roundNumber={1}
             startedAtMs={startedAtMs}
+            endAtMs={finishedAtMs}
             onSurrender={() => setShowSurrenderConfirm(true)}
             surrenderDisabled={!isPlaying}
           />

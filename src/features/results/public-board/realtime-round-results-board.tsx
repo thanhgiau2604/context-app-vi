@@ -1,13 +1,16 @@
 import { AnimatePresence, motion } from "motion/react";
-import { Flag, Trophy, Loader2 } from "lucide-react";
+import { Flag, Trophy, Loader2, Repeat2, Clock } from "lucide-react";
 import { usePublicResultsRealtime } from "@/hooks/use-public-results-realtime-listener";
 import { useLiveRoundProgress } from "@/lib/firestore/live-round-progress-firestore-repository";
 import { RankBadge } from "@/components/ui/rank-display-badge";
+import { formatDurationMmSs } from "@/lib/utils/format-duration-mmss";
 import { cn } from "@/lib/tailwind-class-merge-utils";
 
 type Props = { roundId: string; activePlayers: number };
 
-function sortResults(results: ReturnType<typeof usePublicResultsRealtime>) {
+type PublicResult = ReturnType<typeof usePublicResultsRealtime>[number];
+
+function sortResults(results: PublicResult[]) {
   return [...results].sort((a, b) => {
     if (a.status === "solved" && b.status !== "solved") return -1;
     if (b.status === "solved" && a.status !== "solved") return 1;
@@ -18,10 +21,29 @@ function sortResults(results: ReturnType<typeof usePublicResultsRealtime>) {
   });
 }
 
+// Two results share the same standing (Hạng) when they are equal under the sort order.
+function sameStanding(a: PublicResult, b: PublicResult): boolean {
+  const aSolved = a.status === "solved";
+  const bSolved = b.status === "solved";
+  if (aSolved !== bSolved) return false;
+  if (aSolved) return a.finishOrder === b.finishOrder;
+  return (a.bestRank ?? Infinity) === (b.bestRank ?? Infinity);
+}
+
+// Standard competition ranking ("1224"): equal entries share a number, the next distinct
+// entry skips ahead by the count of tied entries above it.
+function assignStandings(sorted: PublicResult[]): Array<PublicResult & { place: number }> {
+  let place = 0;
+  return sorted.map((r, i) => {
+    if (i === 0 || !sameStanding(sorted[i - 1], r)) place = i + 1;
+    return { ...r, place };
+  });
+}
+
 export function RealtimeRoundResultsBoard({ roundId, activePlayers }: Props) {
   const results = usePublicResultsRealtime(roundId);
   const liveProgress = useLiveRoundProgress(roundId);
-  const sorted = sortResults(results);
+  const ranked = assignStandings(sortResults(results));
 
   // In-progress players: have a live rank but haven't finished yet. Show their best
   // rank live (no guess word — spec §9), sorted closest-first.
@@ -34,18 +56,20 @@ export function RealtimeRoundResultsBoard({ roundId, activePlayers }: Props) {
   return (
     <div className="hud-corners flex flex-col gap-2 game-card p-4" aria-live="polite">
       <div className="flex items-center justify-between">
-        <span className="font-display text-base font-semibold text-gradient-brand">Kết quả round</span>
+        <span className="font-display text-base font-semibold text-gradient-brand">
+          Kết quả round
+        </span>
         {stillWaiting > 0 && (
           <span className="text-xs text-muted-foreground">Còn {stillWaiting} người đang chơi</span>
         )}
       </div>
 
-      {sorted.length === 0 && inProgress.length === 0 && (
+      {ranked.length === 0 && inProgress.length === 0 && (
         <p className="text-xs text-muted-foreground text-center py-2">Chưa có ai đoán.</p>
       )}
 
       <AnimatePresence initial={false}>
-        {sorted.map((r, i) => (
+        {ranked.map((r, i) => (
           <motion.div
             key={r.uid}
             initial={{ opacity: 0, x: 40 }}
@@ -58,14 +82,35 @@ export function RealtimeRoundResultsBoard({ roundId, activePlayers }: Props) {
                 : "border-border bg-muted/10 text-muted-foreground",
             )}
           >
+            {/* Standing (Hạng N) — ties share the same number */}
+            <span
+              className={cn(
+                "shrink-0 rounded-md border px-2 py-0.5 font-display text-xs font-bold tabular-nums",
+                r.place === 1
+                  ? "border-primary/40 bg-primary/15 text-primary"
+                  : "border-border bg-muted/20 text-muted-foreground",
+              )}
+            >
+              Hạng {r.place}
+            </span>
             {r.status === "solved" ? (
               <Trophy size={14} className="shrink-0" aria-hidden="true" />
             ) : (
               <Flag size={14} className="shrink-0" aria-hidden="true" />
             )}
-            <span className="flex-1 font-medium truncate">{r.name}</span>
-            <RankBadge rank={r.bestRank} size="sm" />
-            <span className="font-mono text-xs">+{r.roundScore}đ</span>
+            <div className="flex min-w-0 flex-1 flex-col">
+              <span className="truncate font-medium">{r.name}</span>
+              {/* Per-player round stats: số lần đoán + thời gian */}
+              <span className="flex items-center gap-2 text-[11px] opacity-70 tabular-nums">
+                <span className="inline-flex items-center gap-0.5">
+                  <Repeat2 size={11} aria-hidden="true" /> {r.guessCount} lượt
+                </span>
+                <span className="inline-flex items-center gap-0.5">
+                  <Clock size={11} aria-hidden="true" /> {formatDurationMmSs(r.durationMs / 1000)}
+                </span>
+              </span>
+            </div>
+            <span className="font-mono text-xs font-bold">+{r.roundScore}đ</span>
           </motion.div>
         ))}
 

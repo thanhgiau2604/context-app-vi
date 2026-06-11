@@ -20,7 +20,9 @@ export function CumulativeScoreLeaderboardPanel() {
 
       <div className="flex flex-col gap-1.5">
         {sorted.map((p, i) => {
-          const medal = MEDAL_STYLES[i];
+          // No medal / glow for zero-score rows — effects only reward actual points.
+          const hasScore = p.totalScore > 0;
+          const medal = hasScore ? MEDAL_STYLES[i] : undefined;
           return (
             <motion.div
               key={p.uid}
@@ -31,7 +33,7 @@ export function CumulativeScoreLeaderboardPanel() {
               className={cn(
                 "flex items-center gap-3 rounded-lg border px-3 py-2.5",
                 medal ? medal.ring : "border-border bg-muted/10",
-                i === 0 && "game-glow shimmer-overlay",
+                i === 0 && hasScore && "game-glow shimmer-overlay",
               )}
             >
               <span className="flex w-7 shrink-0 items-center justify-center">

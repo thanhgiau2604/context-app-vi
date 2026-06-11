@@ -79,8 +79,8 @@ export function GuessInputForm({ disabled, onSolved }: Props) {
       }
       if (result.rank === 1) onSolved?.();
       setInput("");
-    } catch {
-      toast.error("Lỗi kết nối. Thử lại.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Lỗi kết nối. Thử lại.");
     } finally {
       setLoading(false);
       inputRef.current?.focus();
@@ -102,7 +102,7 @@ export function GuessInputForm({ disabled, onSolved }: Props) {
         placeholder="Nhập từ đoán…"
         value={input}
         onChange={(e) => setInput(e.target.value)}
-        disabled={loading || disabled}
+        disabled={disabled}
         autoComplete="off"
         autoFocus
         aria-label="Nhập từ đoán"
