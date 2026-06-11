@@ -6,30 +6,30 @@
 :root {
   color-scheme: dark;
 
-  --radius: 1rem;
+  --radius: 0.75rem;
 
-  /* Base */
-  --background: oklch(0.145 0.035 265);
-  --foreground: oklch(0.985 0.006 255);
+  /* Base — OLED near-black with a faint blue cast (Cyber Arena) */
+  --background: oklch(0.12 0.02 250);
+  --foreground: oklch(0.97 0.012 200);
 
-  --card: oklch(0.19 0.04 265 / 0.82);
-  --card-foreground: oklch(0.985 0.006 255);
+  --card: oklch(0.16 0.025 245 / 0.82);
+  --card-foreground: oklch(0.97 0.012 200);
 
-  --popover: oklch(0.18 0.04 265);
-  --popover-foreground: oklch(0.985 0.006 255);
+  --popover: oklch(0.15 0.025 245);
+  --popover-foreground: oklch(0.97 0.012 200);
 
-  /* Brand */
-  --primary: oklch(0.68 0.18 292);
-  --primary-foreground: oklch(0.99 0.006 255);
+  /* Brand — neon cyan primary, magenta accent */
+  --primary: oklch(0.8 0.15 195);
+  --primary-foreground: oklch(0.13 0.03 230);
 
-  --secondary: oklch(0.28 0.055 260);
-  --secondary-foreground: oklch(0.94 0.012 255);
+  --secondary: oklch(0.26 0.045 250);
+  --secondary-foreground: oklch(0.94 0.012 200);
 
-  --accent: oklch(0.78 0.13 205);
-  --accent-foreground: oklch(0.13 0.03 260);
+  --accent: oklch(0.7 0.24 330);
+  --accent-foreground: oklch(0.98 0.01 320);
 
-  --muted: oklch(0.245 0.04 260);
-  --muted-foreground: oklch(0.72 0.025 255);
+  --muted: oklch(0.22 0.03 250);
+  --muted-foreground: oklch(0.72 0.03 215);
 
   /* Semantic */
   --destructive: oklch(0.64 0.22 25);
@@ -44,34 +44,34 @@
   --info: oklch(0.76 0.13 220);
   --info-foreground: oklch(0.12 0.03 250);
 
-  /* Border / Input / Ring */
-  --border: oklch(0.33 0.045 265 / 0.75);
-  --input: oklch(0.255 0.04 265);
-  --ring: oklch(0.72 0.15 292);
+  /* Border / Input / Ring — cyan-tinted, brighter for the HUD look */
+  --border: oklch(0.4 0.06 220 / 0.55);
+  --input: oklch(0.22 0.035 245);
+  --ring: oklch(0.8 0.15 195);
 
-  /* Game rank colors */
-  --rank-exact: oklch(0.86 0.18 88);
-  --rank-ultra: oklch(0.78 0.16 72);
-  --rank-hot: oklch(0.72 0.18 38);
-  --rank-warm: oklch(0.72 0.16 145);
-  --rank-close: oklch(0.74 0.13 198);
-  --rank-cool: oklch(0.65 0.12 258);
-  --rank-far: oklch(0.54 0.07 270);
-  --rank-unknown: oklch(0.42 0.025 260);
+  /* Game rank colors — neon ramp: closer = brighter/hotter neon, far = dim blue */
+  --rank-exact: oklch(0.88 0.24 150);
+  --rank-ultra: oklch(0.84 0.16 195);
+  --rank-hot: oklch(0.72 0.26 330);
+  --rank-warm: oklch(0.78 0.2 200);
+  --rank-close: oklch(0.7 0.16 240);
+  --rank-cool: oklch(0.6 0.13 265);
+  --rank-far: oklch(0.5 0.07 260);
+  --rank-unknown: oklch(0.42 0.025 255);
 
-  /* Game surfaces */
-  --game-glow-primary: oklch(0.68 0.18 292 / 0.34);
-  --game-glow-accent: oklch(0.78 0.13 205 / 0.22);
-  --game-surface-1: oklch(0.18 0.04 265 / 0.72);
-  --game-surface-2: oklch(0.23 0.045 265 / 0.66);
-  --game-surface-3: oklch(0.3 0.055 265 / 0.52);
+  /* Game surfaces / glow — neon cyan + magenta */
+  --game-glow-primary: oklch(0.8 0.15 195 / 0.36);
+  --game-glow-accent: oklch(0.7 0.24 330 / 0.28);
+  --game-surface-1: oklch(0.16 0.025 245 / 0.74);
+  --game-surface-2: oklch(0.2 0.03 245 / 0.66);
+  --game-surface-3: oklch(0.26 0.04 245 / 0.52);
 
   /* Charts / leaderboard */
-  --chart-1: oklch(0.82 0.17 78);
-  --chart-2: oklch(0.76 0.13 205);
-  --chart-3: oklch(0.68 0.18 292);
-  --chart-4: oklch(0.72 0.16 155);
-  --chart-5: oklch(0.65 0.16 25);
+  --chart-1: oklch(0.88 0.24 150);
+  --chart-2: oklch(0.84 0.16 195);
+  --chart-3: oklch(0.72 0.26 330);
+  --chart-4: oklch(0.78 0.2 200);
+  --chart-5: oklch(0.6 0.13 265);
 }
 
 .dark {
@@ -82,6 +82,7 @@
 @theme inline {
   --font-sans: "Be Vietnam Pro", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "SFMono-Regular", ui-monospace, monospace;
+  --font-display: "Unbounded", "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
 
   --radius-sm: calc(var(--radius) - 6px);
   --radius-md: calc(var(--radius) - 4px);
@@ -164,15 +165,82 @@
       radial-gradient(circle at 80% 20%, var(--game-glow-accent), transparent 30rem),
       linear-gradient(
         135deg,
-        oklch(0.12 0.04 265),
-        oklch(0.17 0.035 245) 48%,
-        oklch(0.12 0.035 280)
+        oklch(0.1 0.02 250),
+        oklch(0.13 0.025 235) 48%,
+        oklch(0.1 0.03 280)
       );
+  }
+
+  /* Faint CRT scanlines over the whole app — pure cyber texture, low opacity
+     so body text stays readable. Sits above aurora, below content. */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 2px,
+      oklch(0 0 0 / 0.16) 3px,
+      transparent 4px
+    );
+    mix-blend-mode: overlay;
+  }
+
+  /* Animated aurora layer — slow drifting brand-colored blobs for cinematic depth.
+     Fixed + behind content; pointer-events none. Disabled under reduced-motion. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: -20%;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(38rem 30rem at 18% 12%, var(--game-glow-primary), transparent 60%),
+      radial-gradient(34rem 28rem at 84% 18%, var(--game-glow-accent), transparent 60%),
+      radial-gradient(30rem 26rem at 70% 86%, oklch(0.7 0.16 330 / 0.18), transparent 60%);
+    filter: blur(18px);
+    animation: aurora-drift 26s ease-in-out infinite alternate;
   }
 
   ::selection {
     background: color-mix(in oklch, var(--primary) 55%, transparent);
     color: var(--foreground);
+  }
+}
+
+@keyframes aurora-drift {
+  0% {
+    transform: translate3d(-3%, -2%, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(3%, 2%, 0) scale(1.08);
+  }
+  100% {
+    transform: translate3d(-2%, 3%, 0) scale(1.04);
+  }
+}
+
+@keyframes glow-pulse-once {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklch, var(--rank-exact) 55%, transparent);
+  }
+  60% {
+    box-shadow: 0 0 0 6px color-mix(in oklch, var(--rank-exact) 0%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+@keyframes shimmer-sweep {
+  0% {
+    transform: translateX(-130%) skewX(-18deg);
+  }
+  100% {
+    transform: translateX(230%) skewX(-18deg);
   }
 }
 
@@ -229,6 +297,102 @@
 
   .rank-unknown {
     @apply border-rank-unknown/50 bg-rank-unknown/15 text-muted-foreground;
+  }
+
+  /* Display typeface for hero titles, keyword reveals, big scores */
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+
+  /* One-shot ring pulse — apply when a guess beats the previous best */
+  .glow-pulse-once {
+    animation: glow-pulse-once 0.7s ease-out 1;
+  }
+
+  /* Iridescent gradient border for premium surfaces (winner, keyword reveal, focus) */
+  .iridescent-border {
+    position: relative;
+  }
+  .iridescent-border::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      135deg,
+      color-mix(in oklch, var(--primary) 70%, transparent),
+      color-mix(in oklch, var(--accent) 70%, transparent) 45%,
+      color-mix(in oklch, var(--rank-exact) 70%, transparent)
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Neon text glow — cyber HUD headings/labels */
+  .neon-text {
+    text-shadow:
+      0 0 6px color-mix(in oklch, currentColor 70%, transparent),
+      0 0 18px color-mix(in oklch, currentColor 45%, transparent);
+  }
+
+  /* Neon box glow — outline-style halo for interactive/active surfaces */
+  .neon-glow {
+    box-shadow:
+      0 0 0 1px color-mix(in oklch, var(--primary) 45%, transparent),
+      0 0 14px color-mix(in oklch, var(--primary) 35%, transparent),
+      inset 0 0 22px color-mix(in oklch, var(--primary) 10%, transparent);
+  }
+
+  /* HUD corner brackets — sci-fi frame drawn with gradients on ::before/::after */
+  .hud-corners {
+    position: relative;
+  }
+  .hud-corners::before,
+  .hud-corners::after {
+    content: "";
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-color: color-mix(in oklch, var(--primary) 75%, transparent);
+    border-style: solid;
+    pointer-events: none;
+  }
+  .hud-corners::before {
+    top: 6px;
+    left: 6px;
+    border-width: 2px 0 0 2px;
+  }
+  .hud-corners::after {
+    bottom: 6px;
+    right: 6px;
+    border-width: 0 2px 2px 0;
+  }
+
+  /* Sheen sweep overlay — add to a relative, overflow-hidden element */
+  .shimmer-overlay {
+    position: relative;
+    overflow: hidden;
+  }
+  .shimmer-overlay::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 35%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklch, white 22%, transparent),
+      transparent
+    );
+    animation: shimmer-sweep 3.2s ease-in-out infinite;
+    pointer-events: none;
   }
 }
 

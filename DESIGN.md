@@ -1341,3 +1341,55 @@ The developer feels:
 ```txt
 "Tokens are clear, components are clear, easy to maintain, AI can continue coding while keeping the style consistent."
 ```
+
+---
+
+## 23. Luxury Enhancement Layer (added)
+
+New tokens / utilities in `src/index.css`. Use these for the "modern luxury game" feel.
+
+### 23.1. Display font
+
+- Token: `--font-display` → **Unbounded** (full Vietnamese subset), falls back to Be Vietnam Pro.
+- Utility: `font-display`. Use for hero titles, keyword reveal, big scores, podium numbers, panel headers — NOT body text.
+
+### 23.2. Animated background
+
+- `body::before` renders a slow drifting **aurora** (violet / cyan / magenta blobs, 26s). Fixed, behind content, auto-disabled under `prefers-reduced-motion`. No per-component work needed.
+
+### 23.3. Premium effect utilities
+
+| Class               | Effect                                            | Use on                                         |
+| ------------------- | ------------------------------------------------- | ---------------------------------------------- |
+| `iridescent-border` | Gradient (primary→accent→exact) hairline border   | Hero/join card, keyword reveal, win overlay    |
+| `shimmer-overlay`   | Sheen sweep (needs relative/overflow-hidden host) | Top-1 leaderboard row, winner podium step      |
+| `glow-pulse-once`   | One-shot ring pulse                               | Guess row that becomes the new best rank       |
+
+### 23.4. Medal / podium colors (DRY)
+
+Top-3 styling lives in `src/lib/utils/leaderboard-medal-style.ts` (`MEDAL_STYLES`), using tokens per §11.2: rank1 `rank-exact`, rank2 `accent`, rank3 `primary`. **Never** hard-code `yellow-400` / `slate-300` / `amber-600` for ranks — import `MEDAL_STYLES`.
+
+### 23.5. Guess heat feedback
+
+- Guess input border/ring **warms toward the best-rank tier** (`TIER_RING` in `guess-input-form.tsx`).
+- Guess rows with rank ≤ 20 show a `Flame` icon (lucide); the current best row pulses once.
+- Emoji are never used as icons — `Flag`, `PartyPopper`, `Flame` (lucide) replace prior `🏳`/`🎉`.
+
+### 23.6. Active theme: Neon Cyber Arena
+
+The live palette is **Neon Cyber Arena** (set via token *values* in `:root`, so all components inherit):
+
+- Background: OLED near-black, faint blue cast. Primary = **neon cyan**, accent = **magenta**.
+- Rank ramp is neon: exact = matrix-green, ultra = cyan, hot = magenta, warm = electric-blue, far/unknown = dim blue/gray.
+- Global ambient: cyan/magenta aurora (`body::before`) + faint CRT **scanlines** (`body::after`, overlay blend, low opacity for readability).
+- Confetti uses the neon palette (`solved-confetti-burst-effect.ts`).
+
+Cyber utilities (use as accents, not large fills — keep text contrast ≥4.5:1):
+
+| Class         | Effect                                  | Use on                                  |
+| ------------- | --------------------------------------- | --------------------------------------- |
+| `neon-text`   | Cyan/colored text glow (text-shadow)    | HUD timer, keyword reveal, win headings |
+| `neon-glow`   | Outline halo + inner glow (box-shadow)  | Guess input, hero/join card             |
+| `hud-corners` | Sci-fi corner brackets (::before/after) | Header bar, side panels, hero card      |
+
+Note: on Cyber surfaces, `iridescent-border` is replaced by `neon-glow` + `hud-corners`. To revert to the prior **Midnight Aurora Glass** look, restore the original `:root` token values (§4) — utilities in §23.1–23.5 stay valid for either theme.
