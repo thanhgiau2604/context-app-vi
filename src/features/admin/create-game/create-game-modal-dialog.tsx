@@ -123,7 +123,7 @@ export function CreateGameModalDialog({ open, onOpenChange, adminUid, onDone }: 
               Gemini AI
             </TabsTrigger>
             <TabsTrigger value="json" className="flex-1">
-              Import JSON
+              Nhập danh sách
             </TabsTrigger>
           </TabsList>
 

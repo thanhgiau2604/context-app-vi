@@ -1,10 +1,7 @@
 import { useState } from "react";
 import { CheckCircle, XCircle, Copy, ChevronDown, ChevronUp, Check } from "lucide-react";
-import {
-  GeneratedRoundSchema,
-  validateGeneratedRound,
-  type GeneratedRound,
-} from "@/lib/gemini/generated-round-zod-schema";
+import { type GeneratedRound } from "@/lib/gemini/generated-round-zod-schema";
+import { parseCommaSeparatedRound } from "@/lib/gemini/comma-separated-round-parser";
 import { buildVietnameseContextoPrompt } from "@/lib/gemini/vietnamese-contexto-prompt-builder";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/tailwind-class-merge-utils";
@@ -25,23 +22,13 @@ export function ImportJsonManualTab({ onValidated }: Props) {
   function handleValidate() {
     setErrors([]);
     setValid(false);
-    try {
-      const parsed = JSON.parse(text);
-      const result = GeneratedRoundSchema.safeParse(parsed);
-      if (!result.success) {
-        setErrors(result.error.issues.map((i) => i.message));
-        return;
-      }
-      const extra = validateGeneratedRound(result.data);
-      if (extra.length > 0) {
-        setErrors(extra);
-        return;
-      }
-      setValid(true);
-      onValidated(result.data);
-    } catch {
-      setErrors(["JSON không hợp lệ — kiểm tra cú pháp."]);
+    const { data, errors: parseErrors } = parseCommaSeparatedRound(text);
+    if (!data) {
+      setErrors(parseErrors);
+      return;
     }
+    setValid(true);
+    onValidated(data);
   }
 
   async function handleCopyPrompt() {
@@ -67,7 +54,7 @@ export function ImportJsonManualTab({ onValidated }: Props) {
           <div className="border-t border-border/60 px-3 pb-3 pt-2 flex flex-col gap-2">
             <p className="text-xs text-muted-foreground">
               Copy prompt này, dán vào bất kỳ AI agent nào (ChatGPT, Gemini, Claude…) để tạo keyword
-              + 499 từ liên quan. Sau đó dán JSON trả về vào ô bên dưới.
+              + 499 từ liên quan. Sau đó dán danh sách (cách nhau bởi dấu phẩy) vào ô bên dưới.
             </p>
             <pre className="max-h-48 overflow-y-auto rounded-md border border-border bg-muted/30 p-3 text-xs font-mono whitespace-pre-wrap leading-relaxed">
               {prompt}
@@ -93,10 +80,10 @@ export function ImportJsonManualTab({ onValidated }: Props) {
         )}
       </div>
 
-      {/* JSON paste area */}
+      {/* Comma-separated paste area: keyword trước, kế tiếp 499 từ, mỗi từ cách nhau dấu phẩy */}
       <textarea
         className="h-48 w-full rounded-md border border-border bg-muted/20 p-3 font-mono text-xs resize-none focus:outline-none focus:ring-1 focus:ring-ring"
-        placeholder={'{ "keyword": "...", "relatedTerms": [...] }'}
+        placeholder={"bóng đá, sân cỏ, cầu thủ, trọng tài, …"}
         value={text}
         onChange={(e) => {
           setText(e.target.value);
@@ -105,7 +92,7 @@ export function ImportJsonManualTab({ onValidated }: Props) {
         }}
       />
       <Button variant="outline" onClick={handleValidate} disabled={!text.trim()}>
-        Xác thực JSON
+        Xác thực danh sách
       </Button>
       {valid && (
         <div className="flex items-center gap-2 text-sm text-green-400">

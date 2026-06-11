@@ -4,6 +4,7 @@ import {
   validateGeneratedRound,
   type GeneratedRound,
 } from "./generated-round-zod-schema";
+import { buildRawRoundFromCommaText } from "./comma-separated-round-parser";
 import { TARGET_TERM_COUNT, MAX_GEMINI_ATTEMPTS } from "@/lib/config/game-limits-config";
 
 type GenerateInput = {
@@ -57,7 +58,8 @@ export async function generateRoundWithGemini(input: GenerateInput): Promise<Gen
   throw new Error(`Gemini thất bại sau ${MAX_GEMINI_ATTEMPTS} lần. Lỗi cuối: ${lastError}`);
 }
 
-// One Gemini round-trip: fetch + extract + JSON.parse. Throws on HTTP/parse failure.
+// One Gemini round-trip: fetch + extract + parse comma-separated output into a raw round.
+// Throws on HTTP failure (non-retryable) or empty/unparseable text (retryable).
 async function callGeminiOnce(input: GenerateInput, prompt: string): Promise<unknown> {
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${input.model}:generateContent?key=${input.apiKey}`;
 
@@ -66,7 +68,7 @@ async function callGeminiOnce(input: GenerateInput, prompt: string): Promise<unk
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.8, responseMimeType: "application/json" },
+      generationConfig: { temperature: 0.8 },
     }),
   });
 
@@ -77,7 +79,11 @@ async function callGeminiOnce(input: GenerateInput, prompt: string): Promise<unk
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) throw new Error("Gemini không trả về nội dung hợp lệ.");
 
-  return JSON.parse(text);
+  const round = buildRawRoundFromCommaText(text);
+  if (!round)
+    throw new Error("Gemini trả về định dạng không hợp lệ (cần danh sách cách nhau bởi dấu phẩy).");
+
+  return round;
 }
 
 // Keeps the lowest TARGET_TERM_COUNT ranks (already sorted asc by sanitizer); drops excess.
