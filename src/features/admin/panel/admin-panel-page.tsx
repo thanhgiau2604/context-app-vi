@@ -371,8 +371,8 @@ export function AdminPanelPage() {
           open={showCreateGame}
           onOpenChange={setShowCreateGame}
           adminUid={uid}
-          onDone={(result) => {
-            toast.success(`Game tạo xong! Keyword: ${result.keyword}`);
+          onDone={() => {
+            toast.success("Tạo game thành công");
             setShowCreateGame(false);
           }}
         />
