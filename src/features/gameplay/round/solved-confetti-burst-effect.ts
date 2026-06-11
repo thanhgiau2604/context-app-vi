@@ -6,6 +6,7 @@ export function fireSolvedConfetti() {
     particleCount: 120,
     spread: 80,
     origin: { y: 0.6 },
-    colors: ["#f5c518", "#7c3aed", "#06b6d4", "#10b981"],
+    // Neon Cyber Arena palette: matrix-green, cyan, magenta, electric-blue
+    colors: ["#39ff14", "#00f0ff", "#ff1ad9", "#1a8fff"],
   });
 }

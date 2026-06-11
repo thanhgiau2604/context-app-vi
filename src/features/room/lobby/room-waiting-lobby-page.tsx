@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { motion } from "motion/react";
 import { useNavigate } from "@tanstack/react-router";
 import { Loader2, Play, Users } from "lucide-react";
 import { toast } from "sonner";
@@ -44,10 +45,16 @@ export function RoomWaitingLobbyPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 p-6">
-      <Card className="w-full max-w-md">
+      <motion.div
+        initial={{ opacity: 0, y: 16, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ type: "spring", stiffness: 280, damping: 24 }}
+        className="w-full max-w-md"
+      >
+      <Card className="game-card game-glow w-full">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Phòng chờ</CardTitle>
+            <CardTitle className="font-display">Phòng chờ</CardTitle>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Users size={14} />
               <span>{players.length} người chơi</span>
@@ -59,14 +66,20 @@ export function RoomWaitingLobbyPage() {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <ul className="flex flex-col gap-2">
-            {players.map((p) => (
-              <li key={p.uid} className="flex items-center gap-3 rounded-lg bg-muted/20 px-3 py-2">
+            {players.map((p, i) => (
+              <motion.li
+                key={p.uid}
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.2, delay: i * 0.04 }}
+                className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2"
+              >
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">
                   {p.name[0]?.toUpperCase()}
                 </span>
                 <span className="font-medium">{p.name}</span>
                 {p.uid === uid && <Badge className="ml-auto text-xs">Bạn</Badge>}
-              </li>
+              </motion.li>
             ))}
             {players.length === 0 && (
               <p className="text-center text-sm text-muted-foreground py-2 animate-pulse">
@@ -93,6 +106,7 @@ export function RoomWaitingLobbyPage() {
           )}
         </CardContent>
       </Card>
+      </motion.div>
     </div>
   );
 }

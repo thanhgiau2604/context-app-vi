@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion } from "motion/react";
 import { useNavigate } from "@tanstack/react-router";
 import { Loader2, LogIn } from "lucide-react";
 import { toast } from "sonner";
@@ -59,9 +60,17 @@ export function PlayerJoinRoomPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-6">
-      <Card className="w-full max-w-sm">
+      <motion.div
+        initial={{ opacity: 0, y: 16, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ type: "spring", stiffness: 280, damping: 24 }}
+        className="w-full max-w-sm"
+      >
+      <Card className="game-card neon-glow hud-corners w-full">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-gradient-brand">Contextto Việt</CardTitle>
+          <CardTitle className="font-display text-3xl font-black tracking-tight text-gradient-brand">
+            Contextto Việt
+          </CardTitle>
           <p className="text-sm text-muted-foreground">Game đoán từ tiếng Việt</p>
         </CardHeader>
         <CardContent>
@@ -93,6 +102,7 @@ export function PlayerJoinRoomPage() {
           </div>
         </CardContent>
       </Card>
+      </motion.div>
     </div>
   );
 }

@@ -39,7 +39,7 @@ export function CreateGameModalDialog({ open, onOpenChange, adminUid, onDone }: 
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("medium");
   const [progress, setProgress] = useState<CreateGameProgress | null>(null);
   const [result, setResult] = useState<CreateGameResult | null>(null);
-  const [pendingJson, setPendingJson] = useState<GeneratedRound | null>(null);
+  const [pendingRounds, setPendingRounds] = useState<GeneratedRound[]>([]);
 
   function handleProgress(p: CreateGameProgress) {
     setProgress(p);
@@ -74,16 +74,21 @@ export function CreateGameModalDialog({ open, onOpenChange, adminUid, onDone }: 
   }
 
   async function handleImportConfirm() {
-    if (!pendingJson) return;
+    if (pendingRounds.length === 0) return;
     setStep("confirming");
     try {
-      const r = await createGame(
-        { adminUid, apiKey: geminiApiKey, model: geminiModel, preValidated: pendingJson },
-        handleProgress,
-      );
-      setResult(r);
+      let last: CreateGameResult | null = null;
+      // Each file = one game; create sequentially so roundNumber stays consistent.
+      for (const round of pendingRounds) {
+        last = await createGame(
+          { adminUid, apiKey: geminiApiKey, model: geminiModel, preValidated: round },
+          handleProgress,
+        );
+      }
+      setResult(last);
       setStep("done");
-      onDone(r);
+      if (last) onDone(last);
+      onOpenChange(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Lỗi ghi dữ liệu.");
       setStep("error");
@@ -101,7 +106,7 @@ export function CreateGameModalDialog({ open, onOpenChange, adminUid, onDone }: 
     setStep("idle");
     setProgress(null);
     setResult(null);
-    setPendingJson(null);
+    setPendingRounds([]);
   }
 
   return (
@@ -123,7 +128,7 @@ export function CreateGameModalDialog({ open, onOpenChange, adminUid, onDone }: 
               Gemini AI
             </TabsTrigger>
             <TabsTrigger value="json" className="flex-1">
-              Import JSON
+              Nhập danh sách
             </TabsTrigger>
           </TabsList>
 
@@ -197,8 +202,8 @@ export function CreateGameModalDialog({ open, onOpenChange, adminUid, onDone }: 
           </TabsContent>
 
           <TabsContent value="json" className="flex flex-col gap-4 pt-2">
-            <ImportJsonManualTab onValidated={setPendingJson} />
-            {pendingJson && (
+            <ImportJsonManualTab onValidated={setPendingRounds} />
+            {pendingRounds.length > 0 && (
               <Button onClick={handleImportConfirm} disabled={step === "confirming"}>
                 {step === "confirming" ? (
                   <>
@@ -208,7 +213,7 @@ export function CreateGameModalDialog({ open, onOpenChange, adminUid, onDone }: 
                 ) : (
                   <>
                     <CheckCircle size={16} className="mr-2" />
-                    Xác nhận &amp; Tạo game
+                    Xác nhận &amp; Tạo {pendingRounds.length} game
                   </>
                 )}
               </Button>

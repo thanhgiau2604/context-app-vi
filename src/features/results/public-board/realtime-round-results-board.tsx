@@ -32,9 +32,9 @@ export function RealtimeRoundResultsBoard({ roundId, activePlayers }: Props) {
   const stillWaiting = activePlayers - results.length;
 
   return (
-    <div className="flex flex-col gap-2 game-card p-4" aria-live="polite">
+    <div className="hud-corners flex flex-col gap-2 game-card p-4" aria-live="polite">
       <div className="flex items-center justify-between">
-        <span className="text-base font-semibold text-gradient-brand">Kết quả round</span>
+        <span className="font-display text-base font-semibold text-gradient-brand">Kết quả round</span>
         {stillWaiting > 0 && (
           <span className="text-xs text-muted-foreground">Còn {stillWaiting} người đang chơi</span>
         )}
@@ -54,7 +54,7 @@ export function RealtimeRoundResultsBoard({ roundId, activePlayers }: Props) {
             className={cn(
               "flex items-center gap-3 rounded-lg border px-3 py-2 text-sm",
               r.status === "solved"
-                ? "border-green-500/30 bg-green-500/10 text-green-400"
+                ? "border-success/30 bg-success/10 text-success"
                 : "border-border bg-muted/10 text-muted-foreground",
             )}
           >

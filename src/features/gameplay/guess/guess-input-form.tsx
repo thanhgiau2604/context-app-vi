@@ -4,9 +4,23 @@ import { toast } from "sonner";
 import { submitGuess } from "./guess-submission-service";
 import { publishLiveProgress } from "@/lib/firestore/live-round-progress-firestore-repository";
 import { calculateRoundScore } from "@/lib/utils/round-score-calculator";
+import { getRankTier, type RankTier } from "@/lib/utils/rank-tier-color-classifier";
 import { useGameStore } from "@/stores/game-session-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/tailwind-class-merge-utils";
+
+// Border/ring tint that warms as the player's best rank improves — visual heat feedback.
+const TIER_RING: Record<RankTier, string> = {
+  exact: "border-rank-exact/60 focus-within:ring-rank-exact/60",
+  ultra: "border-rank-ultra/60 focus-within:ring-rank-ultra/60",
+  hot: "border-rank-hot/60 focus-within:ring-rank-hot/60",
+  warm: "border-rank-warm/50 focus-within:ring-rank-warm/50",
+  close: "border-rank-close/40 focus-within:ring-rank-close/50",
+  cool: "border-rank-cool/30 focus-within:ring-rank-cool/40",
+  far: "border-white/10 focus-within:ring-ring/60",
+  unknown: "border-white/10 focus-within:ring-ring/60",
+};
 
 type Props = {
   disabled?: boolean;
@@ -73,10 +87,15 @@ export function GuessInputForm({ disabled, onSolved }: Props) {
     }
   }
 
+  const tintClass = TIER_RING[getRankTier(bestRank)];
+
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex gap-2 game-card game-glow p-2 rounded-2xl transition-shadow focus-within:ring-2 focus-within:ring-ring/60"
+      className={cn(
+        "flex gap-2 game-card neon-glow p-2 rounded-2xl border transition-colors focus-within:ring-2",
+        tintClass,
+      )}
     >
       <Input
         ref={inputRef}

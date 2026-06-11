@@ -1,32 +1,13 @@
+import { useEffect } from "react";
 import { motion } from "motion/react";
 import { Link } from "@tanstack/react-router";
-import { Trophy, Medal, Award } from "lucide-react";
+import { Trophy } from "lucide-react";
 import { usePlayersListener } from "@/hooks/use-players-realtime-listener";
 import { useGameStore } from "@/stores/game-session-store";
+import { MEDAL_STYLES } from "@/lib/utils/leaderboard-medal-style";
+import { fireSolvedConfetti } from "@/features/gameplay/round/solved-confetti-burst-effect";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/tailwind-class-merge-utils";
-
-// Per-rank styling (index = final rank: 0=1st, 1=2nd, 2=3rd).
-const RANK_STYLE = [
-  {
-    Icon: Trophy,
-    color: "text-yellow-400",
-    height: "h-32",
-    step: "bg-yellow-400/20 border-yellow-400/40",
-  },
-  {
-    Icon: Medal,
-    color: "text-slate-300",
-    height: "h-24",
-    step: "bg-slate-300/15 border-slate-300/40",
-  },
-  {
-    Icon: Award,
-    color: "text-amber-600",
-    height: "h-20",
-    step: "bg-amber-600/15 border-amber-600/40",
-  },
-];
 
 // Visual left→right order of podium steps for a given player count (centre = winner).
 const DISPLAY_ORDER: Record<number, number[]> = {
@@ -43,6 +24,11 @@ export function FinalGamePodiumPage() {
   const podiumCount = Math.min(3, sorted.length);
   const order = DISPLAY_ORDER[podiumCount] ?? [];
 
+  // Celebrate the final result once on mount (DESIGN.md §15.5: confetti runs once).
+  useEffect(() => {
+    fireSolvedConfetti();
+  }, []);
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-8 p-6">
       <motion.div
@@ -50,14 +36,14 @@ export function FinalGamePodiumPage() {
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col items-center gap-2"
       >
-        <Trophy size={44} className="text-yellow-400" aria-hidden="true" />
-        <h1 className="text-3xl font-bold text-gradient-brand">Kết thúc!</h1>
+        <Trophy size={44} className="text-rank-exact" aria-hidden="true" />
+        <h1 className="font-display text-3xl font-bold text-gradient-brand">Kết thúc!</h1>
       </motion.div>
 
       <div className="flex items-end justify-center gap-4">
         {order.map((rankIdx, displayIdx) => {
           const player = sorted[rankIdx];
-          const style = RANK_STYLE[rankIdx];
+          const style = MEDAL_STYLES[rankIdx];
           return (
             <motion.div
               key={player.uid}
@@ -78,10 +64,12 @@ export function FinalGamePodiumPage() {
                   "flex w-24 items-center justify-center rounded-t-lg border",
                   style.height,
                   style.step,
-                  rankIdx === 0 && "game-glow",
+                  rankIdx === 0 && "game-glow shimmer-overlay",
                 )}
               >
-                <span className={cn("text-3xl font-bold", style.color)}>#{rankIdx + 1}</span>
+                <span className={cn("font-display text-3xl font-bold", style.color)}>
+                  #{rankIdx + 1}
+                </span>
               </div>
             </motion.div>
           );

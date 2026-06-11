@@ -49,10 +49,12 @@ export function HintPanel({ roundStatus }: Props) {
   const blockReason = getHintBlockReason(bestRank, usedHints, roundStatus);
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/10 p-4">
+    <div className="game-card-soft flex flex-col gap-3 p-4">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-muted-foreground">Gợi ý</span>
-        <span className="text-xs text-muted-foreground">Phạt: -25 / -45 / -70đ</span>
+        <span className="inline-flex items-center rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
+          -25 / -45 / -70đ
+        </span>
       </div>
 
       <div className="grid grid-cols-3 gap-2">

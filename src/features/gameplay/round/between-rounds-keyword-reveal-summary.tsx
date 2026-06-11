@@ -54,13 +54,13 @@ export function BetweenRoundsKeywordRevealSummary({ roundId, activePlayers, isAd
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 p-4">
-      <Card className="w-full max-w-md">
+      <Card className="game-card game-glow w-full max-w-md">
         <CardHeader>
-          <CardTitle>Ván game vừa xong</CardTitle>
+          <CardTitle className="font-display">Ván game vừa xong</CardTitle>
           {keyword ? (
             <div className="flex items-center gap-2 mt-1">
               <span className="text-sm text-muted-foreground">Từ khoá:</span>
-              <Badge className="text-sm font-bold px-3">{keyword}</Badge>
+              <Badge className="font-display text-sm font-bold px-3">{keyword}</Badge>
             </div>
           ) : (
             <p className="text-sm text-muted-foreground animate-pulse">Đang tải từ khoá…</p>
