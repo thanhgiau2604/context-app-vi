@@ -38,15 +38,19 @@ export async function ensureGameState(adminUid: string): Promise<void> {
   }
 }
 
-// Opens the session so players can join the lobby.
-// New session wipes leftover players so totalScore doesn't bleed across sessions (spec §15.2).
-// Players re-join with a fresh doc (totalScore: 0); playerCount resets to 0.
-export async function openSession(): Promise<void> {
-  // Cap at 500 to stay under Firestore's per-batch op limit; live players ≤ MAX_PLAYERS,
-  // this only matters if stale docs accumulated from before the wipe-on-open behavior existed.
+// Queues deletes for every player doc onto the given batch (spec §15.2 — totalScore
+// must not bleed across sessions). Cap at 500 to stay under Firestore's per-batch op
+// limit; live players ≤ MAX_PLAYERS, the cap only matters for stale-doc cleanup.
+async function queueWipeAllPlayers(batch: ReturnType<typeof writeBatch>): Promise<void> {
   const playersSnap = await getDocs(query(collection(db, "players"), limit(500)));
-  const batch = writeBatch(db);
   playersSnap.forEach((d) => batch.delete(d.ref));
+}
+
+// Opens the session so players can join the lobby.
+// Wipes leftover players + resets playerCount; players re-join with a fresh doc (totalScore: 0).
+export async function openSession(): Promise<void> {
+  const batch = writeBatch(db);
+  await queueWipeAllPlayers(batch);
   batch.update(stateRef(), { status: "waiting", playerCount: 0 });
   await batch.commit();
 }
@@ -89,12 +93,16 @@ export async function closeSession(): Promise<void> {
 }
 
 // Resets session back to idle so a new session can be started.
+// Wipes players too (spec §15.2 — totalScore must reset on replay, not bleed across sessions).
 export async function resetSession(): Promise<void> {
-  await updateDoc(stateRef(), {
+  const batch = writeBatch(db);
+  await queueWipeAllPlayers(batch);
+  batch.update(stateRef(), {
     status: "idle",
     currentRoundId: deleteField(),
     playerCount: 0,
   });
+  await batch.commit();
 }
 
 export async function getGameState(): Promise<GameState | null> {
