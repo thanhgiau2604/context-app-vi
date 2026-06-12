@@ -7,6 +7,7 @@ import {
   closeSession,
 } from "@/lib/firestore/game-state-singleton-firestore-repository";
 import { RealtimeRoundResultsBoard } from "@/features/results/public-board/realtime-round-results-board";
+import { usePublicResultsRealtime } from "@/hooks/use-public-results-realtime-listener";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ export function BetweenRoundsKeywordRevealSummary({ roundId, activePlayers, isAd
   const [keyword, setKeyword] = useState<string | null>(null);
   const [busyNext, setBusyNext] = useState(false);
   const [busyEnd, setBusyEnd] = useState(false);
+  const publicResults = usePublicResultsRealtime(roundId);
 
   useEffect(() => {
     getRoundKeyword(roundId)
@@ -67,7 +69,11 @@ export function BetweenRoundsKeywordRevealSummary({ roundId, activePlayers, isAd
           )}
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <RealtimeRoundResultsBoard roundId={roundId} activePlayers={activePlayers} />
+          <RealtimeRoundResultsBoard
+            roundId={roundId}
+            activePlayers={activePlayers}
+            results={publicResults}
+          />
 
           {isAdmin ? (
             <div className="flex gap-2 pt-1">

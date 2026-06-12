@@ -244,7 +244,11 @@ export function GamePageLayout() {
         </div>
 
         <div className="hidden md:flex flex-col gap-3">
-          <RealtimeRoundResultsBoard roundId={roundId} activePlayers={activePlayers} />
+          <RealtimeRoundResultsBoard
+            roundId={roundId}
+            activePlayers={activePlayers}
+            results={publicResults}
+          />
           <CumulativeScoreLeaderboardPanel />
         </div>
       </div>

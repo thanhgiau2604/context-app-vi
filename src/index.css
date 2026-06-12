@@ -163,12 +163,7 @@
     background:
       radial-gradient(circle at 20% 10%, var(--game-glow-primary), transparent 34rem),
       radial-gradient(circle at 80% 20%, var(--game-glow-accent), transparent 30rem),
-      linear-gradient(
-        135deg,
-        oklch(0.1 0.02 250),
-        oklch(0.13 0.025 235) 48%,
-        oklch(0.1 0.03 280)
-      );
+      linear-gradient(135deg, oklch(0.1 0.02 250), oklch(0.13 0.025 235) 48%, oklch(0.1 0.03 280));
   }
 
   /* Faint CRT scanlines over the whole app — pure cyber texture, low opacity
@@ -189,8 +184,11 @@
     mix-blend-mode: overlay;
   }
 
-  /* Animated aurora layer — slow drifting brand-colored blobs for cinematic depth.
-     Fixed + behind content; pointer-events none. Disabled under reduced-motion. */
+  /* Static aurora layer — soft brand-colored blobs for cinematic depth.
+     Fixed + behind content; pointer-events none. Static (no animation): a
+     full-viewport blur()ed layer animated via transform re-rasterizes the whole
+     screen every frame and tanks framerate on the game page. Softness comes from
+     wide gradient falloff instead of an expensive blur filter. */
   body::before {
     content: "";
     position: fixed;
@@ -201,25 +199,11 @@
       radial-gradient(38rem 30rem at 18% 12%, var(--game-glow-primary), transparent 60%),
       radial-gradient(34rem 28rem at 84% 18%, var(--game-glow-accent), transparent 60%),
       radial-gradient(30rem 26rem at 70% 86%, oklch(0.7 0.16 330 / 0.18), transparent 60%);
-    filter: blur(18px);
-    animation: aurora-drift 26s ease-in-out infinite alternate;
   }
 
   ::selection {
     background: color-mix(in oklch, var(--primary) 55%, transparent);
     color: var(--foreground);
-  }
-}
-
-@keyframes aurora-drift {
-  0% {
-    transform: translate3d(-3%, -2%, 0) scale(1);
-  }
-  50% {
-    transform: translate3d(3%, 2%, 0) scale(1.08);
-  }
-  100% {
-    transform: translate3d(-2%, 3%, 0) scale(1.04);
   }
 }
 

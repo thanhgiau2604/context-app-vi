@@ -1,14 +1,16 @@
 import { AnimatePresence, motion } from "motion/react";
 import { Flag, Trophy, Loader2, Repeat2, Clock } from "lucide-react";
-import { usePublicResultsRealtime } from "@/hooks/use-public-results-realtime-listener";
 import { useLiveRoundProgress } from "@/lib/firestore/live-round-progress-firestore-repository";
 import { RankBadge } from "@/components/ui/rank-display-badge";
 import { formatDurationMmSs } from "@/lib/utils/format-duration-mmss";
 import { cn } from "@/lib/tailwind-class-merge-utils";
+import type { PublicRoundResult } from "@/types/game-firestore-types";
 
-type Props = { roundId: string; activePlayers: number };
+// `results` is passed in from the parent (GamePageLayout already subscribes to
+// publicResults) so the board does NOT open a second onSnapshot for the same data.
+type Props = { roundId: string; activePlayers: number; results: PublicRoundResult[] };
 
-type PublicResult = ReturnType<typeof usePublicResultsRealtime>[number];
+type PublicResult = PublicRoundResult;
 
 function sortResults(results: PublicResult[]) {
   return [...results].sort((a, b) => {
@@ -40,8 +42,7 @@ function assignStandings(sorted: PublicResult[]): Array<PublicResult & { place: 
   });
 }
 
-export function RealtimeRoundResultsBoard({ roundId, activePlayers }: Props) {
-  const results = usePublicResultsRealtime(roundId);
+export function RealtimeRoundResultsBoard({ roundId, activePlayers, results }: Props) {
   const liveProgress = useLiveRoundProgress(roundId);
   const ranked = assignStandings(sortResults(results));
 
