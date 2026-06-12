@@ -23,6 +23,19 @@ export const rankTierColorClass: Record<RankTier, string> = {
   unknown: "text-muted-foreground bg-muted/30 border-muted/30",
 };
 
+// Solid-ish fill color for the Contexto-style proximity bar (guess history).
+// Hotter tiers = more opaque/vivid so closer guesses read as "warmer" at a glance.
+export const rankTierBarClass: Record<RankTier, string> = {
+  exact: "bg-rank-exact/85",
+  ultra: "bg-rank-ultra/75",
+  hot: "bg-rank-hot/65",
+  warm: "bg-rank-warm/55",
+  close: "bg-rank-close/50",
+  cool: "bg-rank-cool/45",
+  far: "bg-rank-far/40",
+  unknown: "bg-muted/40",
+};
+
 export function getRankLabel(rank: number | null): string {
   const tier = getRankTier(rank);
   switch (tier) {
