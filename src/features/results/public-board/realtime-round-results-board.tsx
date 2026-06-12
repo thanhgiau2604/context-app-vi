@@ -12,24 +12,16 @@ type Props = { roundId: string; activePlayers: number; results: PublicRoundResul
 
 type PublicResult = PublicRoundResult;
 
+// Standing follows POINTS: higher roundScore ranks first (so Hạng matches the +đ
+// shown). Ties break by who finished first. Solved players always outscore
+// surrendered ones, so score order naturally keeps solved above surrendered.
 function sortResults(results: PublicResult[]) {
-  return [...results].sort((a, b) => {
-    if (a.status === "solved" && b.status !== "solved") return -1;
-    if (b.status === "solved" && a.status !== "solved") return 1;
-    if (a.status === "solved") return a.finishOrder - b.finishOrder;
-    const ar = a.bestRank ?? Infinity,
-      br = b.bestRank ?? Infinity;
-    return ar - br;
-  });
+  return [...results].sort((a, b) => b.roundScore - a.roundScore || a.finishOrder - b.finishOrder);
 }
 
-// Two results share the same standing (Hạng) when they are equal under the sort order.
+// Two results share the same standing (Hạng) when their scores are equal.
 function sameStanding(a: PublicResult, b: PublicResult): boolean {
-  const aSolved = a.status === "solved";
-  const bSolved = b.status === "solved";
-  if (aSolved !== bSolved) return false;
-  if (aSolved) return a.finishOrder === b.finishOrder;
-  return (a.bestRank ?? Infinity) === (b.bestRank ?? Infinity);
+  return a.roundScore === b.roundScore;
 }
 
 // Standard competition ranking ("1224"): equal entries share a number, the next distinct

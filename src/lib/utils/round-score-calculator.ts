@@ -1,10 +1,12 @@
 // Round scoring — spec §8.
 //   solveScore     = max(MIN_SOLVE_SCORE, SOLVE_BASE - (guessCount-1)*GUESS_PENALTY)   // chỉ khi solved
 //   timePenalty    = min(CAP, max(0, elapsedSec - GRACE) * PER_SEC)                     // chỉ khi solved
-//   proximityBonus = bestRank ≤ THRESHOLD && trong cửa sổ ? (THRESHOLD - bestRank)*FACTOR : 0  // CẢ solved + surrendered
-//   hintPenalty    = Σ HINT_PENALTIES[0 .. usedHints-1]   // leo thang [25,45,70]
-//   roundScore(solved)      = max(0, solveScore + proximityBonus - timePenalty - hintPenalty)
+//   proximityBonus = CHỈ khi surrendered: bestRank ≤ THRESHOLD && trong cửa sổ ? (THRESHOLD - bestRank)*FACTOR : 0
+//   hintPenalty    = Σ HINT_PENALTIES[0 .. usedHints-1]   // leo thang [10,20,30]
+//   roundScore(solved)      = max(0, solveScore - timePenalty - hintPenalty)
 //   roundScore(surrendered) = max(0, proximityBonus - hintPenalty)
+// Lý do prox chỉ cho surrendered: người đã giải đều ở rank 1 nên prox vô nghĩa, và
+// cờ near-miss-trong-60s là nhiễu — nó từng cho người đoán nhiều/chậm vượt người ít lượt.
 
 import {
   SOLVE_BASE,
@@ -40,10 +42,11 @@ export function calculateRoundScore(params: {
       )
     : 0;
 
-  // Proximity bonus áp cho cả solved + surrendered (spec §15.4), một lần theo bestRank trong cửa sổ.
+  // Proximity bonus CHỈ cho người bỏ cuộc — an ủi vì đến gần. Người đã giải đều rank 1
+  // nên prox không có ý nghĩa và từng phá thứ tự (đoán nhiều vẫn vượt nhờ +prox).
   const inWindow = params.firstNearMissWithin60s === true;
   const proximityBonus =
-    inWindow && params.bestRank != null && params.bestRank <= PROX_THRESHOLD
+    !solved && inWindow && params.bestRank != null && params.bestRank <= PROX_THRESHOLD
       ? (PROX_THRESHOLD - params.bestRank) * PROX_FACTOR
       : 0;
 

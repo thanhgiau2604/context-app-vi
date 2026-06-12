@@ -78,6 +78,74 @@
   color-scheme: dark;
 }
 
+/* ── Light theme ───────────────────────────────────────────────────────────
+   Opt-in via <html class="light"> (toggle persists to localStorage). Keeps the
+   neon brand hues but on a clean light surface, with darker rank ramp + text so
+   contrast stays AA-readable. Only token VALUES change — the @theme mapping and
+   all utilities/components stay token-driven, so they adapt automatically. */
+html.light {
+  color-scheme: light;
+
+  --background: oklch(0.98 0.006 240);
+  --foreground: oklch(0.24 0.035 255);
+
+  --card: oklch(1 0 0 / 0.88);
+  --card-foreground: oklch(0.24 0.035 255);
+
+  --popover: oklch(0.99 0.003 240);
+  --popover-foreground: oklch(0.24 0.035 255);
+
+  --primary: oklch(0.58 0.13 205);
+  --primary-foreground: oklch(0.99 0.005 240);
+
+  --secondary: oklch(0.93 0.012 240);
+  --secondary-foreground: oklch(0.28 0.035 255);
+
+  --accent: oklch(0.56 0.2 330);
+  --accent-foreground: oklch(0.99 0.005 320);
+
+  --muted: oklch(0.95 0.008 240);
+  --muted-foreground: oklch(0.46 0.03 250);
+
+  --destructive: oklch(0.58 0.22 25);
+  --destructive-foreground: oklch(0.99 0.006 255);
+
+  --success: oklch(0.55 0.15 155);
+  --success-foreground: oklch(0.99 0.006 155);
+
+  --warning: oklch(0.6 0.15 78);
+  --warning-foreground: oklch(0.99 0.006 78);
+
+  --info: oklch(0.55 0.13 230);
+  --info-foreground: oklch(0.99 0.006 250);
+
+  --border: oklch(0.5 0.03 240 / 0.32);
+  --input: oklch(0.97 0.006 240);
+  --ring: oklch(0.58 0.13 205);
+
+  /* Rank ramp darkened for legibility on a light surface */
+  --rank-exact: oklch(0.6 0.18 150);
+  --rank-ultra: oklch(0.56 0.13 200);
+  --rank-hot: oklch(0.56 0.22 330);
+  --rank-warm: oklch(0.58 0.16 200);
+  --rank-close: oklch(0.55 0.15 245);
+  --rank-cool: oklch(0.55 0.12 265);
+  --rank-far: oklch(0.6 0.05 260);
+  --rank-unknown: oklch(0.7 0.02 255);
+
+  --game-glow-primary: oklch(0.7 0.13 205 / 0.18);
+  --game-glow-accent: oklch(0.62 0.2 330 / 0.14);
+  --game-surface-1: oklch(1 0 0 / 0.82);
+  --game-surface-2: oklch(0.98 0.006 240 / 0.78);
+  --game-surface-3: oklch(0.95 0.01 240 / 0.7);
+
+  --chart-1: oklch(0.6 0.18 150);
+  --chart-2: oklch(0.56 0.13 200);
+  --chart-3: oklch(0.56 0.22 330);
+  --chart-4: oklch(0.58 0.16 200);
+  --chart-5: oklch(0.55 0.12 265);
+}
+
 /* Tailwind v4 theme mapping */
 @theme inline {
   --font-sans: "Be Vietnam Pro", "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -164,6 +232,30 @@
       radial-gradient(circle at 20% 10%, var(--game-glow-primary), transparent 34rem),
       radial-gradient(circle at 80% 20%, var(--game-glow-accent), transparent 30rem),
       linear-gradient(135deg, oklch(0.1 0.02 250), oklch(0.13 0.025 235) 48%, oklch(0.1 0.03 280));
+  }
+
+  /* Light theme: swap the dark base gradient for a soft light wash. */
+  html.light body {
+    background:
+      radial-gradient(circle at 20% 10%, var(--game-glow-primary), transparent 34rem),
+      radial-gradient(circle at 80% 20%, var(--game-glow-accent), transparent 30rem),
+      linear-gradient(
+        135deg,
+        oklch(0.98 0.006 240),
+        oklch(0.96 0.01 235) 48%,
+        oklch(0.97 0.012 280)
+      );
+  }
+
+  /* Scanlines read as grime on a light bg — fade them out. */
+  html.light body::after {
+    opacity: 0.35;
+  }
+
+  /* game-card/-soft & many rows use border-white/10, invisible on light.
+     Repoint white-based hairlines to a faint dark line in light theme. */
+  html.light [class*="border-white"] {
+    border-color: oklch(0.3 0.02 250 / 0.14);
   }
 
   /* Faint CRT scanlines over the whole app — pure cyber texture, low opacity

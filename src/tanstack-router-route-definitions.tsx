@@ -1,5 +1,6 @@
 import { createRouter, createRoute, createRootRoute, Outlet } from "@tanstack/react-router";
 import { Toaster } from "sonner";
+import { ThemeToggleFloatingButton } from "@/components/layout/theme-toggle-floating-button";
 import { AdminAuthGuard } from "@/features/admin/auth/admin-auth-guard";
 import { PlayerJoinRoomPage } from "@/features/room/join/player-join-room-page";
 import { RoomWaitingLobbyPage } from "@/features/room/lobby/room-waiting-lobby-page";
@@ -13,6 +14,7 @@ const rootRoute = createRootRoute({
   component: () => (
     <>
       <Outlet />
+      <ThemeToggleFloatingButton />
       <Toaster richColors position="top-center" />
     </>
   ),
