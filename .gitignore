@@ -24,3 +24,4 @@ dist-ssr
 *.sw?
 .env
 settings.local.json
+games/
