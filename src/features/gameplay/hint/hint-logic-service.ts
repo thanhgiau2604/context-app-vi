@@ -1,6 +1,5 @@
 import type { RoundTerm } from "@/types/game-firestore-types";
-
-const HINT_PENALTIES = [25, 45, 70]; // hint 1, 2, 3
+import { HINT_PENALTIES } from "@/lib/config/scoring-config";
 
 export type HintResult = {
   term: string;
@@ -9,28 +8,23 @@ export type HintResult = {
   hintIndex: number;
 };
 
-export type HintBlockReason =
-  | "not-guessed-yet"
-  | "too-close"
-  | "no-hints-left"
-  | "round-not-playing";
+export type HintBlockReason = "too-close" | "no-hints-left" | "round-not-playing";
 
+// Hints can be flipped at any time — no need to have guessed a related word first.
 export function getHintBlockReason(
   bestRank: number | null,
   usedHints: number,
   roundStatus: string,
 ): HintBlockReason | null {
   if (roundStatus !== "playing") return "round-not-playing";
-  if (bestRank === null) return "not-guessed-yet";
-  if (bestRank <= 2) return "too-close";
+  // Guard the null case explicitly: `null <= 2` coerces to true in JS.
+  if (bestRank !== null && bestRank <= 2) return "too-close";
   if (usedHints >= 3) return "no-hints-left";
   return null;
 }
 
 export function getHintBlockMessage(reason: HintBlockReason): string {
   switch (reason) {
-    case "not-guessed-yet":
-      return "Hãy đoán ít nhất một từ trước khi dùng gợi ý.";
     case "too-close":
       return "Bạn đã rất gần đáp án — không thể mở thêm gợi ý!";
     case "no-hints-left":
@@ -41,22 +35,42 @@ export function getHintBlockMessage(reason: HintBlockReason): string {
 }
 
 // Pure in-memory hint resolution — no Firestore reads.
-// Picks a random term 1–5 positions better than bestRank (never reveals keyword at rank 1).
+// Reveals a term closer than the player's best (never the keyword at rank 1), and
+// never re-reveals a rank already shown by a previous hint (`revealedRanks`).
+// With no guesses yet (bestRank null), seeds from the corpus floor (max rank + 1).
 export function resolveHint(
   roundTerms: RoundTerm[],
-  bestRank: number,
+  bestRank: number | null,
   usedHints: number,
+  revealedRanks: Set<number>,
 ): HintResult | null {
-  // maxStep ensures targetRank stays ≥ 2 (never reveals keyword)
-  const maxStep = Math.min(5, bestRank - 2);
+  const maxRank = roundTerms.reduce((m, t) => Math.max(m, t.rank), 1);
+  const effectiveBest = bestRank ?? maxRank + 1;
+
+  // maxStep keeps targetRank ≥ 2 (never reveals the keyword at rank 1).
+  const maxStep = Math.min(5, effectiveBest - 2);
   if (maxStep < 1) return null;
 
-  const step = Math.floor(Math.random() * maxStep) + 1;
-  const targetRank = bestRank - step;
+  // Preferred window: 1–5 ranks closer than best, term exists, not already revealed.
+  const windowCandidates: RoundTerm[] = [];
+  for (let step = 1; step <= maxStep; step++) {
+    const r = effectiveBest - step;
+    if (revealedRanks.has(r)) continue;
+    const entry = roundTerms.find((t) => t.rank === r);
+    if (entry) windowCandidates.push(entry);
+  }
 
-  const entry = roundTerms.find((t) => t.rank === targetRank);
-  if (!entry) return null;
+  // Fallback (window fully revealed): any unrevealed term closer than best, rank ≥ 2.
+  const candidates =
+    windowCandidates.length > 0
+      ? windowCandidates
+      : roundTerms.filter(
+          (t) => t.rank >= 2 && t.rank < effectiveBest && !revealedRanks.has(t.rank),
+        );
 
+  if (candidates.length === 0) return null;
+
+  const entry = candidates[Math.floor(Math.random() * candidates.length)];
   return {
     term: entry.term,
     rank: entry.rank,

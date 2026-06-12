@@ -17,5 +17,5 @@ export const PROX_WINDOW_SEC = 60; // cửa sổ xét proximity bonus
 export const PROX_THRESHOLD = 50; // chỉ thưởng khi bestRank ≤ ngưỡng
 export const PROX_FACTOR = 2; // hệ số: (THRESHOLD - bestRank) * FACTOR
 
-// Phạt hint leo thang theo lượt dùng: hint 1 = −25, 2 = −45, 3 = −70 (đủ 3 = −140).
-export const HINT_PENALTIES = [25, 45, 70];
+// Phạt hint leo thang theo lượt dùng: hint 1 = −10, 2 = −20, 3 = −30 (đủ 3 = −60).
+export const HINT_PENALTIES = [10, 20, 30];

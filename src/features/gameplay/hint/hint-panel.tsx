@@ -29,7 +29,11 @@ export function HintPanel({ roundStatus }: Props) {
 
     setLoading(true);
     try {
-      const result = resolveHint(roundTerms, bestRank!, usedHints);
+      // Exclude ranks already shown so hint N never duplicates an earlier hint.
+      const revealedRanks = new Set(
+        hints.filter((h): h is HintResult => h != null).map((h) => h.rank),
+      );
+      const result = resolveHint(roundTerms, bestRank, usedHints, revealedRanks);
       if (!result) {
         toast.info("Không tìm được gợi ý phù hợp.");
         return;
@@ -53,7 +57,7 @@ export function HintPanel({ roundStatus }: Props) {
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-muted-foreground">Gợi ý</span>
         <span className="inline-flex items-center rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
-          -25 / -45 / -70đ
+          -10 / -20 / -30đ
         </span>
       </div>
 
@@ -84,7 +88,7 @@ export function HintPanel({ roundStatus }: Props) {
         ) : (
           <>
             <Lightbulb size={14} className="mr-2" />
-            Dùng gợi ý ({3 - usedHints} còn)
+            Dùng gợi ý (còn {3 - usedHints})
           </>
         )}
       </Button>

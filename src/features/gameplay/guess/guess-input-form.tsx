@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { submitGuess } from "./guess-submission-service";
+import { normalizeVietnamese } from "@/lib/utils/normalize-vietnamese-text";
 import { publishLiveProgress } from "@/lib/firestore/live-round-progress-firestore-repository";
 import { calculateRoundScore } from "@/lib/utils/round-score-calculator";
 import { getRankTier, type RankTier } from "@/lib/utils/rank-tier-color-classifier";
@@ -35,6 +36,7 @@ export function GuessInputForm({ disabled, onSolved }: Props) {
     roundTerms,
     keywordHash,
     roundSalt,
+    localGuesses,
     addLocalGuess,
     updateBestRank,
     bestRank,
@@ -54,6 +56,14 @@ export function GuessInputForm({ disabled, onSolved }: Props) {
     e.preventDefault();
     const trimmed = input.trim();
     if (!trimmed || loading || !keywordHash || !roundSalt) return;
+
+    // Reject repeats: same normalized word already guessed this round.
+    const normalized = normalizeVietnamese(trimmed);
+    if (normalized && localGuesses.some((g) => g.normalizedText === normalized)) {
+      toast.info(`Từ "${trimmed}" đã được đoán trước đó`);
+      setInput("");
+      return;
+    }
 
     setLoading(true);
     try {

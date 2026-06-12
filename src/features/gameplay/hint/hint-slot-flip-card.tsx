@@ -3,6 +3,7 @@ import { Lock } from "lucide-react";
 import { getRankTier, rankTierColorClass } from "@/lib/utils/rank-tier-color-classifier";
 import { RankBadge } from "@/components/ui/rank-display-badge";
 import { cn } from "@/lib/tailwind-class-merge-utils";
+import { HINT_PENALTIES } from "@/lib/config/scoring-config";
 
 type Props = {
   index: number;
@@ -10,8 +11,6 @@ type Props = {
   rank?: number;
   revealed: boolean;
 };
-
-const PENALTIES = [25, 45, 70];
 
 export function HintSlotFlipCard({ index, term, rank, revealed }: Props) {
   const tier = rank != null ? getRankTier(rank) : "unknown";
@@ -33,7 +32,7 @@ export function HintSlotFlipCard({ index, term, rank, revealed }: Props) {
       ) : (
         <>
           <Lock size={16} className="text-muted-foreground" />
-          <span className="text-xs text-muted-foreground">-{PENALTIES[index]}đ</span>
+          <span className="text-xs text-muted-foreground">-{HINT_PENALTIES[index]}đ</span>
         </>
       )}
     </motion.div>
