@@ -113,13 +113,17 @@ export function GamePageLayout() {
     setSolved(true);
     setFinishedAtMs(Date.now());
     try {
+      // Read guess count fresh from the store: the winning guess was just added in
+      // GuessInputForm right before onSolved fired, so this component's destructured
+      // `localGuesses` is still one render behind (would report 0 on a first-guess solve).
+      const solvedGuessCount = Math.max(1, useGameStore.getState().localGuesses.length);
       const score = await finishPlayerRound({
         roundId,
         uid,
         name: playerName,
         status: "solved",
         bestRank: 1,
-        guessCount: localGuesses.length,
+        guessCount: solvedGuessCount,
         usedHints,
         hintPenalty: 0,
         startedAtMs,

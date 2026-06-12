@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import { Flag, Trophy, Loader2, Repeat2, Clock } from "lucide-react";
+import { Flag, Trophy, Repeat2, Clock } from "lucide-react";
 import { useLiveRoundProgress } from "@/lib/firestore/live-round-progress-firestore-repository";
 import { RankBadge } from "@/components/ui/rank-display-badge";
 import { formatDurationMmSs } from "@/lib/utils/format-duration-mmss";
@@ -123,7 +123,12 @@ export function RealtimeRoundResultsBoard({ roundId, activePlayers, results }: P
             transition={{ duration: 0.25 }}
             className="flex items-center gap-3 rounded-lg border border-border bg-muted/5 px-3 py-2 text-sm text-muted-foreground"
           >
-            <Loader2 size={14} className="shrink-0 animate-spin opacity-60" aria-hidden="true" />
+            {/* Pulsing dot = "đang chơi" (live), not a spinner — a circle loader here
+                reads as a data fetch in progress and confuses players. */}
+            <span
+              className="size-2 shrink-0 rounded-full bg-primary/70 animate-pulse"
+              aria-hidden="true"
+            />
             <span className="flex-1 font-medium truncate">{p.name}</span>
             <RankBadge rank={p.bestRank} size="sm" />
             <span className="font-mono text-xs tabular-nums">~{p.liveScore ?? 0}đ</span>
